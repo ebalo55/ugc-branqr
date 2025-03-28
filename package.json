@@ -9,6 +9,11 @@
     "astro": "astro"
   },
   "dependencies": {
-    "astro": "^5.5.5"
+    "@astrojs/ts-plugin": "^1.10.4",
+    "@playform/compress": "^0.1.7",
+    "@tailwindcss/vite": "^4.0.17",
+    "astro": "^5.5.5",
+    "astro-embed": "^0.9.0",
+    "tailwindcss": "^4.0.17"
   }
 }
