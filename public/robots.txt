@@ -1,0 +1,4 @@
+User-agent: *
+Allow: /
+
+Sitemap: https://ugc.branqr.com/sitemap-index.xml

@@ -1,14 +1,17 @@
 // @ts-check
-import { defineConfig } from 'astro/config';
+import sitemap from "@astrojs/sitemap";
+import compress from "@playform/compress";
 
 import tailwindcss from "@tailwindcss/vite";
-import compress from "@playform/compress"
+import { defineConfig } from "astro/config";
 
 // https://astro.build/config
 export default defineConfig({
-  site: "https://ugc.branqr.com",
+    site: "https://ugc.branqr.com",
 
-  vite: {
-    plugins: [tailwindcss(), compress()],
-  },
+    vite: {
+        plugins: [ tailwindcss() ],
+    },
+
+    integrations: [ sitemap(), compress() ],
 });

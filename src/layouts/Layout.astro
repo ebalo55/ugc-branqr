@@ -1,16 +1,89 @@
 ---
 import "../styles/global.css";
+import { SEO, type SEOProps } from "astro-seo";
+import type { Thing } from "schema-dts";
+
+interface Props extends SEOProps {
+    keywords?: string[];
+    schema?: Thing;
+}
+
+const {
+          title       = "BranQR | Transform Your QR Code Experience",
+          description = "BranQR is the all-in-one solution to create, customize, and track branded QR codes. Unlock powerful analytics, dynamic redirects, and real-time insights to boost your marketing success.",
+          canonical   = "https://branqr.com",
+          openGraph   = {
+              basic: {
+                  image: "https://branqr.com/assets/branqr-hero.webp",
+                  title: "BranQR",
+                  type:  "website",
+                  url:   "https://branqr.com",
+              },
+          },
+          twitter     = {
+              card:        "summary_large_image",
+              site:        "@BranQR",
+              creator:     "@BranQR",
+              title:       "BranQR - Transform Your QR Code Experience",
+              description: "BranQR is the all-in-one solution to create, customize, and track branded QR codes.",
+              image:       "https://branqr.com/assets/branqr-hero.webp",
+          },
+          keywords    = [
+              "BranQR",
+              "QR code",
+              "branded QR code",
+              "QR code analytics",
+              "QR code marketing",
+              "dynamic QR codes",
+              "scan tracking",
+              "real-time insights",
+          ],
+          schema      = {
+              "@context":  "https://schema.org",
+              "@type":     "WebApplication",
+              name:        "Branqr",
+              url:         "https://branqr.com",
+              image:       "https://branqr.com/assets/logo.png",
+              description: "Branqr lets you generate and track branded QR codes and mini-sites with real-time analytics.",
+              publisher:   {
+                  "@type": "Organization",
+                  name:    "Branqr",
+                  url:     "https://branqr.com",
+              },
+          },
+      } = Astro.props;
 ---
 
 <!doctype html>
 <html lang="en">
-	<head>
-		<meta charset="UTF-8" />
-		<meta name="viewport" content="width=device-width" />
-		<link rel="icon" type="image/svg+xml" href="/favicon.svg" />
-		<title>Astro Basics</title>
-	</head>
-	<body>
-		<slot />
-	</body>
+    <head>
+        <meta charset="UTF-8"/>
+        <meta name="viewport"
+              content="width=device-width, initial-scale=1.0"/>
+        <link rel="icon"
+              href="/favicon.ico"/>
+        <SEO title={ title }
+             description={ description }
+             canonical={ canonical }
+             openGraph={ openGraph }
+             twitter={ twitter }/>
+        <meta name="robots"
+              content="index, follow">
+        <meta name="keywords"
+              content={ keywords.join(", ") }/>
+        <meta name="author"
+              content="Branqr">
+        <meta name="publisher"
+              content="Branqr">
+        <meta name="generator"
+              content="Branqr">
+        <script type="application/ld+json"
+                is:inline
+                set:html={ JSON.stringify(schema) }/>
+        <link rel="sitemap"
+              href="/sitemap-index.xml"/>
+    </head>
+    <body>
+        <slot/>
+    </body>
 </html>
