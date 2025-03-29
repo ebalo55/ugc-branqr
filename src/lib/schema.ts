@@ -6,7 +6,6 @@
 //
 
 import { z } from "astro:content";
-// Combined schema with conditional validation
 import { Country, ReversedCountry } from "./countries";
 import { dayjs } from "./dayjs";
 import { Language, LanguageReversed } from "./languages";
