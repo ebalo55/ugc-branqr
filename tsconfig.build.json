@@ -1,0 +1,15 @@
+{
+    "extends": "./tsconfig.json",
+    "compilerOptions": {
+        "outDir": "scripts-dist",
+        "module": "ESNext",
+        "moduleResolution": "bundler",
+        "allowSyntheticDefaultImports": true,
+        "preserveSymlinks": true,
+        "noEmit": false,
+        "allowImportingTsExtensions": false
+    },
+    "exclude": [
+        "astro.config.ts"
+    ]
+}

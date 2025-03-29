@@ -1,8 +1,9 @@
 import { glob } from "astro/loaders";
 import { defineCollection, z } from "astro:content";
 
+
 const content_schema = z.object({
-    id: z.number().describe("Unique identifier for the content"),
+    salt: z.string().describe("Salt used for encryption"),
     crypt_data: z.string().describe("Encrypted data describing the content"),
 })
 
@@ -20,4 +21,5 @@ const images = defineCollection({
     schema: ({image}) => image(),
 })
 
+export type ContentSchema = z.infer<typeof content_schema>;
 export const collections = {static_content, dynamic_content, images};

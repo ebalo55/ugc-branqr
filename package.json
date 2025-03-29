@@ -1,23 +1,32 @@
 {
-  "name": "ugc-branqr",
-  "type": "module",
-  "version": "0.0.1",
-  "scripts": {
-    "dev": "astro dev",
-    "build": "astro build",
-    "preview": "astro preview",
-    "astro": "astro"
-  },
-  "dependencies": {
-    "@astrojs/sitemap": "^3.3.0",
-    "@astrojs/ts-plugin": "^1.10.4",
-    "@playform/compress": "^0.1.7",
-    "@tailwindcss/vite": "^4.0.17",
-    "astro": "^5.5.5",
-    "astro-embed": "^0.9.0",
-    "astro-seo": "^0.8.4",
-    "radash": "^12.1.0",
-    "tailwindcss": "^4.0.17",
-    "schema-dts": "1.1.5"
-  }
+    "name": "ugc-branqr",
+    "type": "module",
+    "version": "0.0.1",
+    "scripts": {
+        "dev": "astro dev",
+        "build": "astro build",
+        "preview": "astro preview",
+        "astro": "astro",
+        "gen:demo": "pnpm rimraf scripts-dist && pnpm tsc -p ./tsconfig.build.json && node ./scripts/patch.js && node ./scripts-dist/scripts/make-demo-content.js"
+    },
+    "dependencies": {
+        "@astrojs/sitemap": "^3.3.0",
+        "@astrojs/ts-plugin": "^1.10.4",
+        "@playform/compress": "^0.1.7",
+        "@tailwindcss/vite": "^4.0.17",
+        "astro": "^5.5.5",
+        "astro-embed": "^0.9.0",
+        "astro-seo": "^0.8.4",
+        "dayjs": "^1.11.13",
+        "radash": "^12.1.0",
+        "schema-dts": "1.1.5",
+        "tailwindcss": "^4.0.17"
+    },
+    "devDependencies": {
+        "@paralleldrive/cuid2": "^2.2.2",
+        "@types/node": "^22.13.14",
+        "dotenv": "^16.4.7",
+        "glob": "^11.0.1",
+        "typescript": "^5.8.2"
+    }
 }

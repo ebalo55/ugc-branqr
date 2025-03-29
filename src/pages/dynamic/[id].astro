@@ -1,0 +1,22 @@
+---
+import Layout from "../../layouts/Layout.astro";
+interface Props {
+}
+
+export async function getStaticPaths() {
+    return [
+        {
+            params: {id: "test"},
+        },
+    ];
+}
+
+const {id} = Astro.params;
+---
+
+<Layout>
+    <div class="flex flex-col items-center justify-center h-screen">
+        <h1 class="text-4xl font-bold">Dynamic Page</h1>
+        <p class="mt-4 text-lg">This is a dynamic page with ID: { id }</p>
+    </div>
+</Layout>
