@@ -49,7 +49,11 @@ export class Encryption {
      * @param {string} data
      * @param key
      */
-    public async encrypt(data: string, key: CryptoKey) {
+    public async encrypt(data: string, key?: CryptoKey) {
+        if (!key) {
+            key = this._key;
+        }
+
         const iv = crypto.getRandomValues(new Uint8Array(12));
         const result = await crypto.subtle.encrypt(
             {
@@ -69,7 +73,11 @@ export class Encryption {
      * @param {string} data
      * @param key
      */
-    public async decrypt(data: string, key: CryptoKey) {
+    public async decrypt(data: string, key?: CryptoKey) {
+        if (!key) {
+            key = this._key;
+        }
+
         const [ iv, encrypted ] = data.split(".");
         const result = await crypto.subtle.decrypt(
             {
@@ -84,6 +92,11 @@ export class Encryption {
         return new TextDecoder().decode(result);
     }
 
+    /**
+     * Prepare the salt for the key derivation. Convert it to a Uint8Array.
+     * @param {string} salt
+     * @returns {any}
+     */
     public prepareSalt(salt: string) {
         return Buffer.from(salt, "base64url");
     }
