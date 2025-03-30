@@ -1,19 +1,20 @@
 import { createId } from "@paralleldrive/cuid2";
 import { z } from "astro:content";
 import { config } from "dotenv";
-import { writeFile } from "fs/promises";
+import { unlink, writeFile } from "fs/promises";
+import { globSync } from "glob";
 import { all } from "radash";
 import type { ContentSchema } from "../src/content.config.ts";
 import { Encryption } from "../src/lib/encryption";
-import { QR_FORM_VALIDATION_SCHEMA } from "../src/lib/schema";
+import { QR_CODE_SCHEMA } from "../src/lib/schema";
 
 config();
 await Encryption.init();
 
-type Content = z.infer<typeof QR_FORM_VALIDATION_SCHEMA>
+type Content = z.infer<typeof QR_CODE_SCHEMA>
 
-async function storeDemoContent(content: Content) {
-    const validated = QR_FORM_VALIDATION_SCHEMA.safeParse(content);
+async function storeDemoContent(spec: Content) {
+    const validated = QR_CODE_SCHEMA.safeParse(spec);
     if (!validated.success) {
         console.error("Validation failed:", validated.error.format());
         return;
@@ -30,7 +31,7 @@ async function storeDemoContent(content: Content) {
 
     const filename_name = `__DEMO__${ createId() }.json`;
     let folder_name: string;
-    switch (content.content.type) {
+    switch (spec.def.content.type) {
         case "url":
         case "text":
         case "email":
@@ -45,32 +46,56 @@ async function storeDemoContent(content: Content) {
             break;
     }
 
-    const file_path = `./src/content/${ folder_name }/${ content.content.type }/${ filename_name }`;
+    const file_path = `./src/content/${ folder_name }/${ spec.def.content.type }/${ filename_name }`;
     const file_content = JSON.stringify(content_data, null, 4);
 
     await writeFile(file_path, file_content);
-    console.log(`Stored content of type "${ content.content.type }" in "${ file_path }"`);
+    console.log(`Stored content of type "${ spec.def.content.type }" in "${ file_path }"`);
 }
+
+console.log("Cleaning up old demo content...");
+
+const old_content = globSync("./src/content/**/__DEMO__*");
+
+const pending = [];
+for (const file of old_content) {
+    console.log(`Deleting "${ file }"`);
+    pending.push(unlink(file).then(() => console.log(`File "${ file }" deleted`)));
+}
+
+await all(pending);
 
 console.log("Storing demo content...");
 
 await all([
     storeDemoContent({
-        name:       "__DEMO__url",
-        content:    {
-            type:     "url",
-            url:      "https://branqr.com",
-            settings: {
-                track: true,
+        def:  {
+            name:       "__DEMO__url",
+            content:    {
+                type:     "url",
+                url:      "https://branqr.com",
+                settings: {
+                    track: true,
+                },
             },
+            style:      {
+                logo:       {},
+                foreground: {},
+                background: {},
+            },
+            automation: {},
+            advanced:   {},
         },
-        style:      {
-            logo:       {},
-            foreground: {},
-            background: {},
+        meta: {
+            owner:                  process.env.DEMO_OWNER!,
+            cooldown:               20,
+            integrations:           {
+                gtag:    process.env.DEMO_GTAG!,
+                webhook: process.env.DEMO_WEBHOOK!,
+            },
+            with_advertising:       true,
+            with_advanced_tracking: true,
         },
-        automation: {},
-        advanced:   {},
     }),
 ]);
 

@@ -1,7 +1,6 @@
 import { glob } from "astro/loaders";
 import { defineCollection, z } from "astro:content";
 
-
 const content_schema = z.object({
     salt: z.string().describe("Salt used for encryption"),
     crypt_data: z.string().describe("Encrypted data describing the content"),

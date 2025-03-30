@@ -6,14 +6,25 @@
 //
 
 import { z } from "astro:content";
-import { Country, ReversedCountry } from "./countries";
+import { formatByteSize, mb } from "./bytesize";
 import { dayjs } from "./dayjs";
-import { Language, LanguageReversed } from "./languages";
+import {
+    DeviceType,
+    ExpirationCriteria,
+    GradientType,
+    ImageMimes,
+    QrColorType,
+    QrShape,
+    RatingType,
+    RenewCriteria,
+    ReversedCountries,
+    ReversedLocales,
+    ShowcaseStyle,
+    Social,
+    ThresholdScanFrequency,
+    Weekday,
+} from "./enum";
 
-/**
- * Define the types of gradient
- */
-const GradientType = z.enum([ "linear", "radial" ]);
 
 const GRADIENT_SCHEMA = z.object({
     colors: z.array(z.string()).min(2).max(5).describe("Define the colors for the gradient"),
@@ -22,19 +33,9 @@ const GRADIENT_SCHEMA = z.object({
 });
 
 /**
- * The shape of the QR code dots
- */
-const QrShape = z.enum([ "circle", "diamond", "square" ]);
-
-/**
- * The color type for the QR code
- */
-const QrColorType = z.enum([ "solid", "gradient" ]);
-
-/**
  * Define the foreground style for the QR code (QR dots)
  */
-export const QR_STYLE_FOREGROUND_SCHEMA = z.object({
+const QR_STYLE_FOREGROUND_SCHEMA = z.object({
     shape:      QrShape.optional().describe("Define the shape of the foreground (QR dots)"),
     color_type: QrColorType.optional().describe("Define the color type for the foreground (QR dots)"),
     color:      z.string().optional().describe("Define the color for the foreground (QR dots)"),
@@ -44,7 +45,7 @@ export const QR_STYLE_FOREGROUND_SCHEMA = z.object({
 /**
  * Define the background style for the QR code
  */
-export const QR_STYLE_BACKGROUND_SCHEMA = z.object({
+const QR_STYLE_BACKGROUND_SCHEMA = z.object({
     color_type: QrColorType.optional().describe("Define the color type for the foreground (QR dots)"),
     color:      z.string().optional().describe("Define the color for the background (QR code)"),
     gradient:   GRADIENT_SCHEMA.optional().describe("Define the gradients for the background (QR code)"),
@@ -60,7 +61,7 @@ export const QR_STYLE_BACKGROUND_SCHEMA = z.object({
 /**
  * Define the logo style for the QR code
  */
-export const QR_STYLE_LOGO_SCHEMA = z.object({
+const QR_STYLE_LOGO_SCHEMA = z.object({
     color:  z.string().optional().describe("Define the color for the container that holds the logo"),
     radius: z.number()
                 .positive()
@@ -74,41 +75,18 @@ export const QR_STYLE_LOGO_SCHEMA = z.object({
                 .describe("Define the margin around the logo, default to zero, margin is applied to all sides equally"),
 });
 
-const QR_STYLE_SCHEMA = z.object({
+/**
+ * Define the style for the QR code
+ */
+export const QR_STYLE_SCHEMA = z.object({
     foreground: QR_STYLE_FOREGROUND_SCHEMA,
     background: QR_STYLE_BACKGROUND_SCHEMA,
     logo:       QR_STYLE_LOGO_SCHEMA,
 });
 
-const ExpirationCriteria = z.enum([ "never", "time", "scan" ]);
-const RenewCriteria = z.enum([ "never", "time", "manually" ]);
-
-const Social = z.enum([
-    "Facebook",
-    "Twitter / X",
-    "Instagram",
-    "Linkedin",
-    "Youtube",
-    "Pinterest",
-    "Tiktok",
-    "Website",
-    "WhatsApp",
-    "Telegram",
-    "Snapchat",
-    "Twitch",
-    "Spotify",
-    "Soundcloud",
-    "Vimeo",
-    "Reddit",
-    "Discord",
-    "Github",
-    "Tripadvisor",
-    "Yelp",
-    "Etsy",
-    "Airbnb",
-    "Booking",
-]);
-
+/**
+ * The schema for the QR code dynamic theme
+ */
 const QR_DYNAMIC_THEME_SCHEMA = z.object({
     color_type: QrColorType.optional().default("solid"),
     primary:    z.string().optional().default("#455A64"),
@@ -116,8 +94,9 @@ const QR_DYNAMIC_THEME_SCHEMA = z.object({
     gradient:   GRADIENT_SCHEMA.optional(),
 });
 
-const Weekday = z.enum([ "monday", "tuesday", "wednesday", "thursday", "friday", "saturday", "sunday" ]);
-
+/**
+ * Define the prize item for a coupon
+ */
 const QR_COUPON_PRIZE_ITEM_SCHEMA = z.object({
     code: z.string(),
     sale: z.discriminatedUnion("type", [
@@ -131,406 +110,502 @@ const QR_COUPON_PRIZE_ITEM_SCHEMA = z.object({
         }),
     ]),
 });
+
+/**
+ * Represents the prize list for a coupon
+ */
 const QR_COUPON_PRIZE_SCHEMA = z.object({
     first:  QR_COUPON_PRIZE_ITEM_SCHEMA,
     second: QR_COUPON_PRIZE_ITEM_SCHEMA,
     third:  QR_COUPON_PRIZE_ITEM_SCHEMA,
 });
 
-export const Locales = z.nativeEnum(Language);
-export const ReversedLocales = z.nativeEnum(LanguageReversed);
-export const DeviceType = z.enum([ "android", "ios", "windows", "macos", "linux", "web" ]);
-export const Countries = z.nativeEnum(Country);
-export const ReversedCountries = z.nativeEnum(ReversedCountry);
-export const ThresholdScanFrequency = z.enum([ "daily", "weekly", "monthly", "yearly" ]);
+/**
+ * The schema for the basic settings of the QR code
+ */
+const BASIC_SETTINGS_SCHEMA = z.object({
+    track: z.boolean().optional().default(false),
+});
 
-export const QR_FORM_VALIDATION_SCHEMA = z.object({
-    name:       z.string().min(3).max(100),
-    content:    z.discriminatedUnion("type", [
-        // static types
-        z.object({
-            type: z.literal("url"),
-            // this is a flexible regex that allows for a wide range of URLs:
-            // EXAMPLE:
-            // - Passes --> http://localhost:3000/dashboard/editor
-            // - Passes --> https://www.example.com
-            // - Passes --> http://branqr.com
-            // - Passes --> http://this.is.long.example.com/
-            // - Passes --> http://localhost
-            // - Passes --> http://ebalo:password@localhost:3000/test/?aaaaaaa=1
-            // - Passes --> git@github.com:ebalo55/branQR.git
-            // - Passes --> ftps://ebalo55/branQR.git
-            // - NOT PASS --> this will not match
-            // - NOT PASS --> http://
-            url:      z.string().regex(
-                /^\w+(?:@(?:[-a-zA-Z0-9@:%_+~#=]{1,256}\.?)+|:\/\/)(?:[-a-zA-Z0-9@:%_+~#=]{1,256}\.?)+(?::\d+)?[-a-zA-Z0-9()@:%_+.~#?&/=]*$/,
-                "must be a valid URL",
+/**
+ * The schema for the static QR code type URL
+ */
+const QR_STATIC_TYPE_URL = z.object({
+    type: z.literal("url"),
+    // this is a flexible regex that allows for a wide range of URLs:
+    // EXAMPLE:
+    // - Passes --> http://localhost:3000/dashboard/editor
+    // - Passes --> https://www.example.com
+    // - Passes --> http://branqr.com
+    // - Passes --> http://this.is.long.example.com/
+    // - Passes --> http://localhost
+    // - Passes --> http://ebalo:password@localhost:3000/test/?aaaaaaa=1
+    // - Passes --> git@github.com:ebalo55/branQR.git
+    // - Passes --> ftps://ebalo55/branQR.git
+    // - NOT PASS --> this will not match
+    // - NOT PASS --> http://
+    url:      z.string().regex(
+        /^\w+(?:@(?:[-a-zA-Z0-9@:%_+~#=]{1,256}\.?)+|:\/\/)(?:[-a-zA-Z0-9@:%_+~#=]{1,256}\.?)+(?::\d+)?[-a-zA-Z0-9()@:%_+.~#?&/=]*$/,
+        "must be a valid URL",
+    ),
+    settings: BASIC_SETTINGS_SCHEMA,
+});
+
+/**
+ * The schema for the static QR code type text
+ */
+const QR_STATIC_TYPE_TEXT = z.object({
+    type:     z.literal("text"),
+    text:     z.string().nonempty(),
+    settings: BASIC_SETTINGS_SCHEMA,
+});
+
+/**
+ * The schema for the static QR code type email
+ */
+const QR_STATIC_TYPE_EMAIL = z.object({
+    type:     z.literal("email"),
+    email:    z.string().email().nonempty(),
+    subject:  z.string().optional(),
+    body:     z.string().optional(),
+    settings: BASIC_SETTINGS_SCHEMA,
+});
+
+/**
+ * The schema for the static QR code type phone
+ */
+const QR_STATIC_TYPE_PHONE = z.object({
+    type:     z.literal("phone"),
+    phone:    z.string().nonempty(),
+    settings: BASIC_SETTINGS_SCHEMA,
+});
+
+/**
+ * The schema for the static QR code type wifi
+ */
+const QR_STATIC_TYPE_WIFI = z.object({
+    type:     z.literal("wifi"),
+    ssid:     z.string().nonempty(),
+    password: z.string().nonempty(),
+    hidden:   z.boolean().optional(),
+    settings: BASIC_SETTINGS_SCHEMA,
+});
+
+/**
+ * The schema for the static QR code type vcard
+ */
+const QR_STATIC_TYPE_VCARD = z.object({
+    type:         z.literal("vcard"),
+    first_name:   z.string().nonempty(),
+    last_name:    z.string().optional(),
+    organization: z.string().optional(),
+    title:        z.string().optional(),
+    website:      z.string().url().optional(),
+    address:      z.string().optional(),
+    email:        z.string().email().optional(),
+    phone:        z.string().optional(),
+    settings:     BASIC_SETTINGS_SCHEMA,
+});
+
+/**
+ * The schema for the static QR code type sms
+ */
+const QR_STATIC_TYPE_SMS = z.object({
+    type:     z.literal("sms"),
+    phone:    z.string().nonempty(),
+    text:     z.string().max(250).optional(),
+    settings: BASIC_SETTINGS_SCHEMA,
+});
+
+/**
+ * Helper to generate a file schema
+ * @param {{mime_types?: string[], max_size?: number}} settings
+ */
+function makeFileSchema(settings: {
+    mime_types?: string[];
+    max_size?: number;
+}) {
+    return z.instanceof(File)
+        .refine(
+            (f?: File) => !settings.max_size || (
+                f && f.size <= settings.max_size
             ),
-            settings: z.object({
-                // if tracking is enabled, the url will be stored and the user will be redirected to the tracking page
-                // where they get redirected to the target url
-                track: z.boolean(),
-            }),
+            "File size is too large, max size is " + formatByteSize(settings.max_size ?? 0),
+        )
+        .refine(
+            (f?: File) => !settings.mime_types || (
+                f && (
+                    settings.mime_types.includes(f.type) || settings.mime_types.includes("*/*")
+                )
+            ),
+            "File type is not allowed",
+        );
+}
+
+const IMAGE_SCHEMA = makeFileSchema({
+    mime_types: ImageMimes.options,
+    max_size:   mb`2`,
+});
+
+/**
+ * The schema for the dynamic QR code type vcard-plus
+ */
+const QR_DYNAMIC_TYPE_VCARD_PLUS = z.object({
+    type:         z.literal("vcard-plus"),
+    theme:        QR_DYNAMIC_THEME_SCHEMA,
+    image:        IMAGE_SCHEMA.optional(),
+    first_name:   z.string().nonempty(),
+    last_name:    z.string().optional(),
+    email:        z.string().email().optional(),
+    mobile:       z.string().optional(),
+    phone:        z.string().optional(),
+    fax:          z.string().optional(),
+    organization: z.string().optional(),
+    title:        z.string().optional(),
+    website:      z.string().url().optional(),
+    address:      z.string().optional(),
+    summary:      z.string().max(200).optional(),
+    settings:     z.object({
+        actions: z.object({
+            email:         z.boolean().optional(),
+            sms:           z.boolean().optional(),
+            call:          z.boolean().optional(),
+            share:         z.boolean().optional(),
+            visit_website: z.boolean().optional(),
+        }).optional(),
+    }),
+});
+
+/**
+ * The schema for the dynamic QR code type pdf
+ */
+const QR_DYNAMIC_TYPE_PDF = z.object({
+    type:         z.literal("pdf"),
+    theme:        QR_DYNAMIC_THEME_SCHEMA,
+    pdf:          makeFileSchema({
+        mime_types: [ "application/pdf" ],
+        max_size:   mb`10`,
+    }),
+    organization: z.string().optional(),
+    title:        z.string().optional(),
+    website:      z.string().url().optional(),
+    summary:      z.string().max(200).optional(),
+    settings:     z.object({
+        actions: z.object({
+            download: z.boolean().optional(),
+            view:     z.boolean().optional(),
+        }).optional(),
+        // if direct link the preview will be disabled and the user will be redirected to the direct link after
+        // the tracking step
+        direct_link: z.boolean().optional(),
+    }),
+});
+
+/**
+ * The schema for the dynamic QR code type linktree
+ */
+const QR_DYNAMIC_TYPE_LINKTREE = z.object({
+    type:     z.literal("link-tree"),
+    theme:    QR_DYNAMIC_THEME_SCHEMA,
+    headline: z.string().max(250).nonempty(),
+    summary:  z.string().max(200).optional(),
+    links:    z.array(z.object({
+        title:    z.string().max(100).nonempty(),
+        url:      z.string().url().nonempty(),
+        social:   Social,
+        featured: z.boolean().optional(),
+    })),
+    settings: z.object({
+        actions: z.object({
+            share: z.boolean().optional(),
+        }).optional(),
+    }),
+});
+
+/**
+ * The schema for the dynamic QR code type showcase
+ */
+const QR_DYNAMIC_TYPE_SHOWCASE = z.object({
+    type:     z.literal("showcase"),
+    theme:    QR_DYNAMIC_THEME_SCHEMA,
+    headline: z.string().max(250).nonempty(),
+    summary:  z.string().max(200).optional(),
+    website:  z.string().url().optional(),
+    images:   z.array(IMAGE_SCHEMA).min(1).max(10),
+    style:    ShowcaseStyle,
+    cta:      z.object({
+        title: z.string().max(50).nonempty(),
+        url:   z.string().url().nonempty(),
+    }).optional(),
+    settings: z.object({
+        actions: z.object({
+            share: z.boolean().optional(),
+        }).optional(),
+    }),
+});
+
+/**
+ * The schema for the dynamic QR code type app
+ */
+const QR_DYNAMIC_TYPE_APP = z.object({
+    type:       z.literal("app"),
+    theme:      QR_DYNAMIC_THEME_SCHEMA,
+    app_name:   z.string().max(100).nonempty(),
+    logo:       IMAGE_SCHEMA.optional(),
+    developer:  z.string().max(100).optional(),
+    headline:   z.string().max(100).optional(),
+    website:    z.string().url().optional(),
+    summary:    z.string().max(200).optional(),
+    app_store:  z.string().url().optional(),
+    play_store: z.string().url().optional(),
+    cta:        z.object({
+        title: z.string().max(50).nonempty(),
+        url:   z.string().url().nonempty(),
+    }).optional(),
+    settings:   z.object({
+        actions: z.object({
+            share: z.boolean().optional(),
+        }).optional(),
+    }),
+});
+
+/**
+ * The schema for the dynamic QR code type business
+ */
+const QR_DYNAMIC_TYPE_BUSINESS = z.object({
+    type:          z.literal("business"),
+    theme:         QR_DYNAMIC_THEME_SCHEMA,
+    banner:        IMAGE_SCHEMA.optional(),
+    company:       z.string().max(100).optional(),
+    headline:      z.string().max(150).nonempty(),
+    website:       z.string().url().optional(),
+    summary:       z.string().max(200).optional(),
+    opening_hours: z.array(z.object({
+        day:  Weekday,
+        from: z.string().time(),
+        to:   z.string().time(),
+    })).optional(),
+    contact:       z.object({
+        name:    z.string().max(100).optional(),
+        email:   z.string().email().optional(),
+        phone:   z.string().optional(),
+        address: z.string().optional(),
+        website: z.string().url().optional(),
+    }).optional(),
+    links:         z.array(z.object({
+        title:    z.string().max(100).nonempty(),
+        url:      z.string().url().nonempty(),
+        social:   Social,
+        featured: z.boolean().optional(),
+    })).max(5).optional(),
+    cta:           z.object({
+        title: z.string().max(50).nonempty(),
+        url:   z.string().url().nonempty(),
+    }).optional(),
+    settings:      z.object({
+        actions: z.object({
+            share: z.boolean().optional(),
+        }).optional(),
+    }),
+});
+
+/**
+ * The schema for the dynamic QR code type youtube
+ */
+const QR_DYNAMIC_TYPE_YOUTUBE = z.object({
+    type:     z.literal("youtube"),
+    theme:    QR_DYNAMIC_THEME_SCHEMA,
+    company:  z.string().max(100).optional(),
+    headline: z.string().max(150).nonempty(),
+    summary:  z.string().max(200).optional(),
+    video:    z.string().url().nonempty(),
+    cta:      z.object({
+        title: z.string().max(50).nonempty(),
+        url:   z.string().url().nonempty(),
+    }).optional(),
+    settings: z.object({
+        actions: z.object({
+            share: z.boolean().optional(),
+        }).optional(),
+    }),
+});
+
+/**
+ * The schema for the dynamic QR code type event
+ */
+const QR_DYNAMIC_TYPE_EVENT = z.object({
+    type:      z.literal("event"),
+    theme:     QR_DYNAMIC_THEME_SCHEMA,
+    banner:    IMAGE_SCHEMA.optional(),
+    organizer: z.string().max(100).optional(),
+    title:     z.string().max(150).nonempty(),
+    summary:   z.string().max(200).optional(),
+    when:      z.object({
+        from: z.date(),
+        to:   z.date(),
+    }).refine(v => {
+        return dayjs(v.from).isBefore(dayjs(v.to));
+    }, {message: "The start date must be before the end date"}),
+    where:     z.string().optional(),
+    contact:   z.object({
+        name:    z.string().max(100).optional(),
+        email:   z.string().email().optional(),
+        phone:   z.string().optional(),
+        address: z.string().optional(),
+        website: z.string().url().optional(),
+    }).optional(),
+    link:      z.string().url().optional(),
+    about:     z.string().optional(),
+    cta:       z.object({
+        title: z.string().max(50).nonempty(),
+        url:   z.string().url().nonempty(),
+    }).optional(),
+    settings:  z.object({
+        actions: z.object({
+            share:           z.boolean().optional(),
+            add_to_calendar: z.boolean().optional(),
+        }).optional(),
+    }),
+});
+
+/**
+ * The schema for the dynamic QR code type coupon
+ */
+const QR_DYNAMIC_TYPE_COUPON = z.object({
+    type:       z.literal("coupon"),
+    theme:      QR_DYNAMIC_THEME_SCHEMA,
+    banner:     IMAGE_SCHEMA.optional(),
+    company:    z.string().max(100).optional(),
+    headline:   z.string().max(150).nonempty(),
+    summary:    z.string().max(200).optional(),
+    elapses_at: z.date().optional(),
+    terms:      z.string().optional(),
+    website:    z.string().url().optional(),
+    address:    z.string().optional(),
+    prize:      z.discriminatedUnion("type", [
+        z.object({
+            type: z.literal("simple"),
+            item: QR_COUPON_PRIZE_ITEM_SCHEMA,
         }),
         z.object({
-            type:     z.literal("text"),
-            text:     z.string().nonempty(),
-            settings: z.object({
-                // if tracking is enabled, the text will be stored and the user will be redirected to the tracking page
-                // where they can see the text
-                track: z.boolean(),
-            }),
+            type:              z.literal("spin-the-wheel"),
+            win_probabilities: z.array(z.number().min(0).max(100))
+                                   .length(3)
+                                   .refine(
+                                       v => v.reduce((acc, val) => acc + val, 0) === 100,
+                                       {
+                                           message: "The sum of all probabilities must be 100",
+                                       },
+                                   ),
+            prizes:            QR_COUPON_PRIZE_SCHEMA,
         }),
         z.object({
-            type:     z.literal("email"),
-            email:    z.string().email().nonempty(),
-            subject:  z.string().optional(),
-            body:     z.string().optional(),
-            settings: z.object({
-                // if tracking is enabled, the email will be stored and the user will be redirected to the tracking page
-                // where they get redirected to the email client
-                track: z.boolean(),
-            }),
+            type:              z.literal("triple-match"),
+            win_probabilities: z.array(z.number().min(0).max(100))
+                                   .length(3)
+                                   .refine(
+                                       v => v.reduce((acc, val) => acc + val, 0) === 100,
+                                       {
+                                           message: "The sum of all probabilities must be 100",
+                                       },
+                                   ),
+            prizes:            QR_COUPON_PRIZE_SCHEMA,
         }),
         z.object({
-            type:     z.literal("phone"),
-            phone:    z.string().nonempty(),
-            settings: z.object({
-                // if tracking is enabled, the phone will be stored and the user will be redirected to the tracking page
-                // where they get redirected to the email client
-                track: z.boolean(),
-            }),
+            type:              z.literal("lucky-dice"),
+            win_probabilities: z.array(z.number().min(0).max(100))
+                                   .length(3)
+                                   .refine(
+                                       v => v.reduce((acc, val) => acc + val, 0) === 100,
+                                       {
+                                           message: "The sum of all probabilities must be 100",
+                                       },
+                                   ),
+            prizes:            QR_COUPON_PRIZE_SCHEMA,
         }),
-        z.object({
-            type:     z.literal("wifi"),
-            ssid:     z.string().nonempty(),
-            password: z.string().nonempty(),
-            hidden:   z.boolean().optional(),
-            settings: z.object({
-                // if tracking is enabled, the wifi will be stored and the user will be redirected to the tracking page
-                // where they see the wifi details
-                track: z.boolean(),
-            }),
-        }),
-        z.object({
-            type:         z.literal("vcard"),
-            first_name:   z.string().nonempty(),
-            last_name:    z.string().optional(),
-            organization: z.string().optional(),
-            title:        z.string().optional(),
-            website:      z.string().url().optional(),
-            address:      z.string().optional(),
-            email:        z.string().email().optional(),
-            phone:        z.string().optional(),
-            settings:     z.object({
-                // if tracking is enabled, the phone will be stored and the user will be redirected to the tracking page
-                // where they get redirected to the email client
-                track: z.boolean(),
-            }),
-        }),
-        z.object({
-            type:     z.literal("sms"),
-            phone:    z.string().nonempty(),
-            text:     z.string().max(250).optional(),
-            settings: z.object({
-                // if tracking is enabled, the sms will be stored and the user will be redirected to the tracking page
-                // where they see the sms details
-                track: z.boolean(),
-            }),
-        }),
+    ]),
+    settings:   z.object({
+        actions: z.object({
+            share: z.boolean().optional(),
+        }).optional(),
+    }),
+});
+
+/**
+ * The schema for the dynamic QR code type feedback
+ */
+const QR_DYNAMIC_TYPE_FEEDBACK = z.object({
+    type:       z.literal("feedback"),
+    theme:      QR_DYNAMIC_THEME_SCHEMA,
+    headline:   z.string().max(150).nonempty(),
+    summary:    z.string().max(200).optional(),
+    contact:    z.object({
+        name:    z.string().max(100).optional(),
+        email:   z.string().email().optional(),
+        phone:   z.string().optional(),
+        address: z.string().optional(),
+        website: z.string().url().optional(),
+    }).optional(),
+    categories: z.array(z.object({
+        title: z.string().max(50).nonempty(),
+        icon:  z.string().optional(),
+    })).min(1).max(5),
+    settings:   z.object({
+        actions: z.object({
+            share:        z.boolean().optional(),
+            allow_rating: z.boolean().optional(),
+        }).optional(),
+    }),
+});
+
+/**
+ * The schema for the dynamic QR code type rating
+ */
+const QR_DYNAMIC_TYPE_RATING = z.object({
+    type:  z.literal("rating"),
+    theme: QR_DYNAMIC_THEME_SCHEMA,
+    // image as data URL
+    banner:      IMAGE_SCHEMA.optional(),
+    company:     z.string().max(150).nonempty(),
+    contact:     z.object({
+        email:   z.string().email().optional(),
+        website: z.string().url().optional(),
+    }).optional(),
+    rating_type: RatingType,
+    settings:    z.object({
+        actions: z.object({
+            share:         z.boolean().optional(),
+            allow_comment: z.boolean().optional(),
+        }).optional(),
+    }),
+});
+
+/**
+ * The schema for the form validation of user-defined values
+ */
+export const QR_FORM_VALIDATION_SCHEMA = z.object({
+    name:    z.string().min(3).max(100),
+    content: z.discriminatedUnion("type", [
+        // static types
+        QR_STATIC_TYPE_URL,
+        QR_STATIC_TYPE_TEXT,
+        QR_STATIC_TYPE_EMAIL,
+        QR_STATIC_TYPE_PHONE,
+        QR_STATIC_TYPE_WIFI,
+        QR_STATIC_TYPE_VCARD,
+        QR_STATIC_TYPE_SMS,
         // dynamic types
-        z.object({
-            type:  z.literal("vcard-plus"),
-            theme: QR_DYNAMIC_THEME_SCHEMA,
-            // image as data URL
-            image:        z.string().optional(),
-            first_name:   z.string().nonempty(),
-            last_name:    z.string().optional(),
-            email:        z.string().email().optional(),
-            mobile:       z.string().optional(),
-            phone:        z.string().optional(),
-            fax:          z.string().optional(),
-            organization: z.string().optional(),
-            title:        z.string().optional(),
-            website:      z.string().url().optional(),
-            address:      z.string().optional(),
-            summary:      z.string().max(200).optional(),
-            settings:     z.object({
-                actions: z.object({
-                    email:         z.boolean().optional(),
-                    sms:           z.boolean().optional(),
-                    call:          z.boolean().optional(),
-                    share:         z.boolean().optional(),
-                    visit_website: z.boolean().optional(),
-                }).optional(),
-            }),
-        }),
-        z.object({
-            type:         z.literal("pdf"),
-            theme:        QR_DYNAMIC_THEME_SCHEMA,
-            pdf:          z.any(),
-            organization: z.string().optional(),
-            title:        z.string().optional(),
-            website:      z.string().url().optional(),
-            summary:      z.string().max(200).optional(),
-            settings:     z.object({
-                actions: z.object({
-                    download: z.boolean().optional(),
-                    view:     z.boolean().optional(),
-                }).optional(),
-                // if direct link the preview will be disabled and the user will be redirected to the direct link after
-                // the tracking step
-                direct_link: z.boolean().optional(),
-            }),
-        }),
-        z.object({
-            type:     z.literal("link-tree"),
-            theme:    QR_DYNAMIC_THEME_SCHEMA,
-            headline: z.string().max(250).nonempty(),
-            summary:  z.string().max(200).optional(),
-            links:    z.array(z.object({
-                title:    z.string().max(100).nonempty(),
-                url:      z.string().url().nonempty(),
-                social:   Social,
-                featured: z.boolean().optional(),
-            })),
-            settings: z.object({
-                actions: z.object({
-                    share: z.boolean().optional(),
-                }).optional(),
-            }),
-        }),
-        z.object({
-            type:     z.literal("showcase"),
-            theme:    QR_DYNAMIC_THEME_SCHEMA,
-            headline: z.string().max(250).nonempty(),
-            summary:  z.string().max(200).optional(),
-            website:  z.string().url().optional(),
-            // image as data URL
-            images:   z.array(z.string()).min(1).max(10),
-            style:    z.enum([ "carousel", "grid", "list" ]),
-            cta:      z.object({
-                title: z.string().max(50).nonempty(),
-                url:   z.string().url().nonempty(),
-            }).optional(),
-            settings: z.object({
-                actions: z.object({
-                    share: z.boolean().optional(),
-                }).optional(),
-            }),
-        }),
-        z.object({
-            type:     z.literal("app"),
-            theme:    QR_DYNAMIC_THEME_SCHEMA,
-            app_name: z.string().max(100).nonempty(),
-            // image as data URL
-            logo:       z.string().optional(),
-            developer:  z.string().max(100).optional(),
-            headline:   z.string().max(100).optional(),
-            website:    z.string().url().optional(),
-            summary:    z.string().max(200).optional(),
-            app_store:  z.string().url().optional(),
-            play_store: z.string().url().optional(),
-            cta:        z.object({
-                title: z.string().max(50).nonempty(),
-                url:   z.string().url().nonempty(),
-            }).optional(),
-            settings:   z.object({
-                actions: z.object({
-                    share: z.boolean().optional(),
-                }).optional(),
-            }),
-        }),
-        z.object({
-            type:  z.literal("business"),
-            theme: QR_DYNAMIC_THEME_SCHEMA,
-            // image as data URL
-            banner:        z.string().optional(),
-            company:       z.string().max(100).optional(),
-            headline:      z.string().max(150).nonempty(),
-            website:       z.string().url().optional(),
-            summary:       z.string().max(200).optional(),
-            opening_hours: z.array(z.object({
-                day:  Weekday,
-                from: z.string().time(),
-                to:   z.string().time(),
-            })).optional(),
-            contact:       z.object({
-                name:    z.string().max(100).optional(),
-                email:   z.string().email().optional(),
-                phone:   z.string().optional(),
-                address: z.string().optional(),
-                website: z.string().url().optional(),
-            }).optional(),
-            links:         z.array(z.object({
-                title:    z.string().max(100).nonempty(),
-                url:      z.string().url().nonempty(),
-                social:   Social,
-                featured: z.boolean().optional(),
-            })).max(5).optional(),
-            cta:           z.object({
-                title: z.string().max(50).nonempty(),
-                url:   z.string().url().nonempty(),
-            }).optional(),
-            settings:      z.object({
-                actions: z.object({
-                    share: z.boolean().optional(),
-                }).optional(),
-            }),
-        }),
-        z.object({
-            type:     z.literal("youtube"),
-            theme:    QR_DYNAMIC_THEME_SCHEMA,
-            company:  z.string().max(100).optional(),
-            headline: z.string().max(150).nonempty(),
-            summary:  z.string().max(200).optional(),
-            video:    z.string().url().nonempty(),
-            cta:      z.object({
-                title: z.string().max(50).nonempty(),
-                url:   z.string().url().nonempty(),
-            }).optional(),
-            settings: z.object({
-                actions: z.object({
-                    share: z.boolean().optional(),
-                }).optional(),
-            }),
-        }),
-        z.object({
-            type:  z.literal("event"),
-            theme: QR_DYNAMIC_THEME_SCHEMA,
-            // image as data URL
-            banner:    z.string().optional(),
-            organizer: z.string().max(100).optional(),
-            title:     z.string().max(150).nonempty(),
-            summary:   z.string().max(200).optional(),
-            when:      z.object({
-                from: z.date(),
-                to:   z.date(),
-            }).refine(v => {
-                return dayjs(v.from).isBefore(dayjs(v.to));
-            }, {message: "The start date must be before the end date"}),
-            where:     z.string().optional(),
-            contact:   z.object({
-                name:    z.string().max(100).optional(),
-                email:   z.string().email().optional(),
-                phone:   z.string().optional(),
-                address: z.string().optional(),
-                website: z.string().url().optional(),
-            }).optional(),
-            link:      z.string().url().optional(),
-            about:     z.string().optional(),
-            cta:       z.object({
-                title: z.string().max(50).nonempty(),
-                url:   z.string().url().nonempty(),
-            }).optional(),
-            settings:  z.object({
-                actions: z.object({
-                    share:           z.boolean().optional(),
-                    add_to_calendar: z.boolean().optional(),
-                }).optional(),
-            }),
-        }),
-        z.object({
-            type:  z.literal("coupon"),
-            theme: QR_DYNAMIC_THEME_SCHEMA,
-            // image as data URL
-            banner:     z.string().optional(),
-            company:    z.string().max(100).optional(),
-            headline:   z.string().max(150).nonempty(),
-            summary:    z.string().max(200).optional(),
-            elapses_at: z.date().optional(),
-            terms:      z.string().optional(),
-            website:    z.string().url().optional(),
-            address:    z.string().optional(),
-            prize:      z.discriminatedUnion("type", [
-                z.object({
-                    type: z.literal("simple"),
-                    item: QR_COUPON_PRIZE_ITEM_SCHEMA,
-                }),
-                z.object({
-                    type:              z.literal("spin-the-wheel"),
-                    win_probabilities: z.array(z.number().min(0).max(100))
-                                           .length(3)
-                                           .refine(
-                                               v => v.reduce((acc, val) => acc + val, 0) === 100,
-                                               {
-                                                   message: "The sum of all probabilities must be 100",
-                                               },
-                                           ),
-                    prizes:            QR_COUPON_PRIZE_SCHEMA,
-                }),
-                z.object({
-                    type:              z.literal("triple-match"),
-                    win_probabilities: z.array(z.number().min(0).max(100))
-                                           .length(3)
-                                           .refine(
-                                               v => v.reduce((acc, val) => acc + val, 0) === 100,
-                                               {
-                                                   message: "The sum of all probabilities must be 100",
-                                               },
-                                           ),
-                    prizes:            QR_COUPON_PRIZE_SCHEMA,
-                }),
-                z.object({
-                    type:              z.literal("lucky-dice"),
-                    win_probabilities: z.array(z.number().min(0).max(100))
-                                           .length(3)
-                                           .refine(
-                                               v => v.reduce((acc, val) => acc + val, 0) === 100,
-                                               {
-                                                   message: "The sum of all probabilities must be 100",
-                                               },
-                                           ),
-                    prizes:            QR_COUPON_PRIZE_SCHEMA,
-                }),
-            ]),
-            settings:   z.object({
-                actions: z.object({
-                    share: z.boolean().optional(),
-                }).optional(),
-            }),
-        }),
-        z.object({
-            type:       z.literal("feedback"),
-            theme:      QR_DYNAMIC_THEME_SCHEMA,
-            headline:   z.string().max(150).nonempty(),
-            summary:    z.string().max(200).optional(),
-            contact:    z.object({
-                name:    z.string().max(100).optional(),
-                email:   z.string().email().optional(),
-                phone:   z.string().optional(),
-                address: z.string().optional(),
-                website: z.string().url().optional(),
-            }).optional(),
-            categories: z.array(z.object({
-                title: z.string().max(50).nonempty(),
-                icon:  z.string().optional(),
-            })).min(1).max(5),
-            settings:   z.object({
-                actions: z.object({
-                    share:        z.boolean().optional(),
-                    allow_rating: z.boolean().optional(),
-                }).optional(),
-            }),
-        }),
-        z.object({
-            type:  z.literal("rating"),
-            theme: QR_DYNAMIC_THEME_SCHEMA,
-            // image as data URL
-            banner:      z.string().optional(),
-            company:     z.string().max(150).nonempty(),
-            contact:     z.object({
-                email:   z.string().email().optional(),
-                website: z.string().url().optional(),
-            }).optional(),
-            rating_type: z.enum([ "star", "heart", "thumbs", "smiley" ]),
-            settings:    z.object({
-                actions: z.object({
-                    share:         z.boolean().optional(),
-                    allow_comment: z.boolean().optional(),
-                }).optional(),
-            }),
-        }),
+        QR_DYNAMIC_TYPE_VCARD_PLUS,
+        QR_DYNAMIC_TYPE_PDF,
+        QR_DYNAMIC_TYPE_LINKTREE,
+        QR_DYNAMIC_TYPE_SHOWCASE,
+        QR_DYNAMIC_TYPE_APP,
+        QR_DYNAMIC_TYPE_BUSINESS,
+        QR_DYNAMIC_TYPE_YOUTUBE,
+        QR_DYNAMIC_TYPE_EVENT,
+        QR_DYNAMIC_TYPE_COUPON,
+        QR_DYNAMIC_TYPE_FEEDBACK,
+        QR_DYNAMIC_TYPE_RATING,
     ]),
     style:      QR_STYLE_SCHEMA,
     automation: z.object({
@@ -568,8 +643,6 @@ export const QR_FORM_VALIDATION_SCHEMA = z.object({
                 locale:      z.union([ ReversedLocales, z.literal("default") ]),
                 redirect_to: z.string().url().nonempty(),
             })).min(1).max(5, "Locales must contain at most 5 items"),
-            // TODO: optional translations to apply to the dynamic pages, each field will be translated to the locale
-            // translations: z.record(z.string()).optional(),
         }).optional(),
         devices:      z.array(z.object({
             type:        z.union([ DeviceType, z.literal("default") ]),
@@ -620,3 +693,21 @@ export const QR_FORM_VALIDATION_SCHEMA = z.object({
     }),
 });
 
+/**
+ * The schema for the QR code metadata
+ */
+const QR_META = z.object({
+    owner:                  z.string(),
+    cooldown:               z.number().positive(),
+    integrations:           z.object({
+        gtag:    z.string().optional(),
+        webhook: z.string().optional(),
+    }),
+    with_advertising:       z.boolean(),
+    with_advanced_tracking: z.boolean(),
+});
+
+export const QR_CODE_SCHEMA = z.object({
+    def:  QR_FORM_VALIDATION_SCHEMA,
+    meta: QR_META,
+});

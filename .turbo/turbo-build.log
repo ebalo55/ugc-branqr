@@ -1,0 +1,42 @@
+
+> ugc-branqr@0.0.1 build C:\Users\ebalo\Desktop\Projects\node\bran-qr\apps\ugc
+> astro build
+
+05:39:32 [vite] Re-optimizing dependencies because lockfile has changed
+05:39:32 [content] Syncing content
+05:39:32 [content] Content config changed
+05:39:32 [content] Clearing content store
+05:39:32 [WARN] [glob-loader] No files found matching "*.png" in directory "src\content\image"
+05:39:32 [content] Synced content
+05:39:32 [types] Generated 768ms
+05:39:32 [build] output: "static"
+05:39:32 [build] mode: "static"
+05:39:32 [build] directory: C:\Users\ebalo\Desktop\Projects\node\bran-qr\apps\ugc\dist\
+05:39:32 [build] Collecting build info...
+05:39:32 [build] ✓ Completed in 871ms.
+05:39:32 [build] Building static entrypoints...
+05:39:34 [vite] [32m✓ built in 1.19s[39m
+05:39:34 [build] ✓ Completed in 1.25s.
+
+ building client (vite) 
+05:39:34 [vite] transforming...
+05:39:34 [vite] [32m✓[39m 1 modules transformed.
+05:39:34 [vite] rendering chunks...
+05:39:34 [vite] [32m✓ built in 19ms[39m
+
+ generating static routes 
+05:39:34 ▶ src/pages/dynamic/[id].astro
+05:39:34   └─ /dynamic/test/index.html (+11ms) 
+05:39:34 λ src/pages/pdf/[id].pdf.ts
+05:39:34   └─ /pdf/sample.pdf (+4ms) 
+05:39:34 ▶ src/pages/index.astro
+05:39:34   └─ /index.html (+3ms) 
+05:39:34 ▶ src/pages/static/[id].astro
+Missing parameter: id
+  Stack trace:
+    at getParameter (file:///C:/Users/ebalo/Desktop/Projects/node/bran-qr/node_modules/.pnpm/astro@5.5.5_@types+node@22._20a451eae4fe6c2574adbaa54b41c485/node_modules/astro/dist/core/routing/manifest/generator.js:17:13)
+    at Array.map (<anonymous>)
+    at file:///C:/Users/ebalo/Desktop/Projects/node/bran-qr/node_modules/.pnpm/astro@5.5.5_@types+node@22._20a451eae4fe6c2574adbaa54b41c485/node_modules/astro/dist/core/routing/manifest/generator.js:34:44
+    at Object.generate (file:///C:/Users/ebalo/Desktop/Projects/node/bran-qr/node_modules/.pnpm/astro@5.5.5_@types+node@22._20a451eae4fe6c2574adbaa54b41c485/node_modules/astro/dist/core/routing/manifest/generator.js:34:27)
+    at findPathItemByKey (file:///C:/Users/ebalo/Desktop/Projects/node/bran-qr/node_modules/.pnpm/astro@5.5.5_@types+node@22._20a451eae4fe6c2574adbaa54b41c485/node_modules/astro/dist/core/render/route-cache.js:71:21)
+05:39:34   └─ /static/url/__demo__tzs9p7h53eiqvunh736mqd9u/index.html ELIFECYCLE  Command failed with exit code 1.

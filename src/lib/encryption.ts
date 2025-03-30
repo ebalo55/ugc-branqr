@@ -77,7 +77,7 @@ export class Encryption {
                 iv:        Buffer.from(iv!, "base64url"),
                 tagLength: 128,
             },
-            this._key,
+            key,
             Buffer.from(encrypted!, "base64url"),
         );
 
