@@ -1,0 +1,754 @@
+---
+import { getEntry, z } from "astro:content";
+import { Link, Mail, MessageCircleMore, PhoneCall, SquareUser, Text, Wifi, Copy } from "lucide-astro";
+import Ads from "../../components/ads.astro";
+import Skeleton from "../../components/skeleton.astro";
+import Layout from "../../layouts/Layout.astro";
+import { getCollection } from "astro:content";
+import { Encryption } from "../../lib/encryption";
+import { QR_CODE_SCHEMA } from "../../lib/schema";
+
+export async function getStaticPaths() {
+    const collection = await getCollection("static_content");
+    return collection.map(item => (
+        {
+            params: {id: item.id},
+        }
+    ));
+}
+
+const {id} = Astro.params;
+
+const entry = await getEntry("static_content", id);
+
+if (!entry) {
+    throw new Error(`Entry with ID ${ id } not found`);
+}
+
+
+await Encryption.init();
+const key = await Encryption.instance.deriveKey(Encryption.instance.prepareSalt(entry.data.salt));
+const serialized_data = await Encryption.instance.decrypt(entry.data.crypt_data, key.derived_key);
+const data = JSON.parse(serialized_data) as z.infer<typeof QR_CODE_SCHEMA>;
+
+// Helper function to format vCard data
+function formatVCard(data: z.infer<typeof QR_CODE_SCHEMA>["def"]["content"] & {
+    type: "vcard"
+}) {
+    let vcard = "BEGIN:VCARD\nVERSION:3.0\n";
+    vcard += `N:${ data.last_name || "" };${ data.first_name };;;\n`;
+    vcard += `FN:${ data.first_name } ${ data.last_name || "" }\n`;
+    if (data.organization) {
+        vcard += `ORG:${ data.organization }\n`;
+    }
+    if (data.title) {
+        vcard += `TITLE:${ data.title }\n`;
+    }
+    if (data.website) {
+        vcard += `URL:${ data.website }\n`;
+    }
+    if (data.address) {
+        vcard += `ADR:;;${ data.address };;;;\n`;
+    }
+    if (data.email) {
+        vcard += `EMAIL:${ data.email }\n`;
+    }
+    if (data.phone) {
+        vcard += `TEL;TYPE=cell:${ data.phone }\n`;
+    }
+    vcard += "END:VCARD";
+    return vcard;
+}
+
+const getAction = () => {
+    switch (data.def.content.type) {
+        case "url":
+            return {url: data.def.content.url, label: "Visit Website"};
+        case "email":
+            const emailParams = new URLSearchParams();
+            if (data.def.content.subject) {
+                emailParams.append("subject", data.def.content.subject);
+            }
+            if (data.def.content.body) {
+                emailParams.append("body", data.def.content.body);
+            }
+            const emailUrl = `mailto:${ data.def.content.email }?${ emailParams.toString() }`;
+            return {url: emailUrl, label: "Send Email"};
+        case "phone":
+            return {url: `tel:${ data.def.content.phone }`, label: "Call Now"};
+        case "wifi":
+            return {
+                url:   `#`,
+                label: "View Connection Info",
+            };
+        case "vcard":
+            const vcardData = formatVCard(data.def.content);
+            return {
+                url:      `data:text/vcard;charset=utf-8,${ encodeURIComponent(vcardData) }`,
+                download: `${ data.def.content.first_name }_${ data.def.content.last_name || "" }.vcf`,
+                label:    "Save Contact",
+            };
+        case "sms":
+            return {
+                url:   `sms:${ data.def.content.phone }${ data.def.content.text
+                                                          ? `?body=${ encodeURIComponent(
+                        data.def.content.text) }`
+                                                          : "" }`,
+                label: "Send SMS",
+            };
+        default:
+            return {url: "#", label: "View Content"};
+    }
+};
+
+const action = getAction();
+
+const iconMap = {
+    url:   Link,
+    text:  Text,
+    email: Mail,
+    phone: PhoneCall,
+    wifi:  Wifi,
+    vcard: SquareUser,
+    sms:   MessageCircleMore,
+};
+
+const Icon = iconMap[data.def.content.type as keyof typeof iconMap] || Text;
+
+const title = "QR Code Content";
+const description = "Scan the QR code to view the content.";
+
+const client_encryption_key = await Encryption.makeKey();
+const secret_action_url = await Encryption.instance.encrypt(action.url, client_encryption_key.key);
+
+let content = "";
+switch (data.def.content.type) {
+    case "text":
+        content = await Encryption.instance.encrypt(data.def.content.text, client_encryption_key.key);
+        break;
+    case "wifi":
+        content = await Encryption.instance.encrypt(
+            JSON.stringify({
+                ssid:     data.def.content.ssid,
+                password: data.def.content.password,
+                hidden:   data.def.content.hidden,
+            }),
+            client_encryption_key.key,
+        );
+        break;
+    case "vcard":
+        content = await Encryption.instance.encrypt(
+            JSON.stringify({
+                name:         `${ data.def.content.first_name } ${ data.def.content.last_name }`,
+                organization: data.def.content.organization,
+                title:        data.def.content.title,
+                website:      data.def.content.website,
+                address:      data.def.content.address,
+                email:        data.def.content.email,
+                phone:        data.def.content.phone,
+            }),
+            client_encryption_key.key,
+        );
+
+}
+const content_demo = Array.from(
+    {length: 30},
+    () => content.substring(0, Math.floor(Math.random() * 7)),
+).join(" ");
+---
+
+<Layout data={ {
+    key:      client_encryption_key.serialized,
+    action:   secret_action_url,
+    download: action.download ?? "false",
+} }>
+    {
+        data.meta.with_advertising &&
+        <Ads/>
+    }
+    <div class="min-h-dvh flex items-center justify-center p-4 bg-gradient-to-br from-indigo-50 to-indigo-100 dark:from-indigo-950 dark:to-indigo-900 select-none">
+        <div class="w-full max-w-md bg-white dark:bg-neutral-900 rounded-2xl shadow-xl overflow-hidden transform transition-all">
+            <div class="p-8">
+                <div class="flex items-center justify-center w-16 h-16 rounded-full bg-gradient-to-br from-[var(--primary-color)]
+                            to-[var(--secondary-color)] text-neutral-800 dark:text-white mb-6 mx-auto">
+                    <Icon class="w-8 h-8"/>
+                </div>
+
+                <h1 class="text-2xl font-bold text-center text-neutral-800 dark:text-white mb-2">
+                    { title }
+                </h1>
+
+                <p class="text-center text-neutral-600 dark:text-neutral-300 mb-6">
+                    { description }
+                </p>
+
+                <!-- Content Display Section -->
+                <div class="mb-6">
+                    { data.def.content.type === "text" && (
+                            <div class="bg-neutral-100 dark:bg-neutral-700 rounded-lg p-4 text-neutral-700 dark:text-neutral-200
+                                text-pretty blur-sm select-text"
+                                 data-content={ content }>
+                                { content_demo }
+                            </div>
+                    ) }
+
+                    { data.def.content.type === "wifi" && (
+                            <div class="space-y-3"
+                                 data-content={ content }>
+                                <div class="flex flex-col">
+                                    <div class="flex items-center">
+                                        <div class="text-neutral-500 dark:text-neutral-400 w-24 mr-2 shrink-0">
+                                            SSID:
+                                        </div>
+                                        <div id="ssid"
+                                             class="font-medium text-neutral-800 dark:text-white select-text w-full truncate">
+                                            ••••••••
+                                        </div>
+                                        <button id="ssid-copy"
+                                                class="p-1 text-neutral-800 dark:text-white disabled:opacity-50
+                                        disabled:cursor-not-allowed shrink-0 ml-2 cursor-pointer"
+                                                disabled>
+                                            <Copy/>
+                                        </button>
+                                    </div>
+                                    <div id="ssid-copy-msg"
+                                         class="text-sm text-green-600 dark:text-green-400 hidden">
+                                        SSID copied to clipboard!
+                                    </div>
+                                </div>
+                                <div class="flex flex-col">
+                                    <div class="flex items-center">
+                                        <div class="text-neutral-500 dark:text-neutral-400 w-24 mr-2 shrink-0">
+                                            Password:
+                                        </div>
+                                        <div id="password"
+                                             class="font-medium text-neutral-800 dark:text-white select-text truncate w-full">
+                                            ••••••••
+                                        </div>
+                                        <button id="password-copy"
+                                                class="p-1 text-neutral-800 dark:text-white disabled:opacity-50
+                                        disabled:cursor-not-allowed shrink-0 ml-2 cursor-pointer"
+                                                disabled>
+                                            <Copy/>
+                                        </button>
+                                    </div>
+                                    <div id="password-copy-msg"
+                                         class="text-sm text-green-600 dark:text-green-400 hidden">
+                                        Password copied to clipboard!
+                                    </div>
+                                </div>
+                                <div class="flex items-center">
+                                    <div class="text-neutral-500 dark:text-neutral-400 w-24 mr-2">Hidden:</div>
+                                    <div id="hidden"
+                                         class="font-medium text-neutral-800 dark:text-white">
+                                        ••••••••
+                                    </div>
+                                </div>
+                            </div>
+                    ) }
+
+                    { data.def.content.type === "vcard" && (
+                            <div class="space-y-3"
+                                 data-content={ content }>
+                                <div class="flex items-center">
+                                    <div class="text-neutral-500 dark:text-neutral-400 w-24 shrink-0">
+                                        Name:
+                                    </div>
+                                    <div id="name"
+                                         class="font-medium text-neutral-800 dark:text-white grow-0 truncate">
+                                        <Skeleton/>
+                                    </div>
+                                </div>
+                                { data.def.content.title && (
+                                        <div class="flex items-center">
+                                            <div class="text-neutral-500 dark:text-neutral-400 w-24 shrink-0">
+                                                Title:
+                                            </div>
+                                            <div id="title"
+                                                 class="font-medium text-neutral-800 dark:text-white grow-0 truncate">
+                                                <Skeleton/>
+                                            </div>
+                                        </div>
+                                ) }
+                                { data.def.content.organization && (
+                                        <div class="flex items-center">
+                                            <div class="text-neutral-500 dark:text-neutral-400 w-24 shrink-0">Company:
+                                            </div>
+                                            <div id="organization"
+                                                 class="font-medium text-neutral-800 dark:text-white grow-0 truncate">
+                                                <Skeleton/>
+                                            </div>
+                                        </div>
+                                ) }
+                                { data.def.content.address && (
+                                        <div class="flex items-center">
+                                            <div class="text-neutral-500 dark:text-neutral-400 w-24 shrink-0">
+                                                Address:
+                                            </div>
+                                            <div id="address"
+                                                 class="font-medium text-neutral-800 dark:text-white grow-0 truncate">
+                                                <Skeleton/>
+                                            </div>
+                                        </div>
+                                ) }
+                                { data.def.content.phone && (
+                                        <div class="flex items-center">
+                                            <div class="text-neutral-500 dark:text-neutral-400 w-24 shrink-0">
+                                                Phone:
+                                            </div>
+                                            <div id="phone"
+                                                 class="font-medium text-neutral-800 dark:text-white grow-0 truncate">
+                                                <Skeleton/>
+                                            </div>
+                                        </div>
+                                ) }
+                                { data.def.content.email && (
+                                        <div class="flex items-center">
+                                            <div class="text-neutral-500 dark:text-neutral-400 w-24 shrink-0">
+                                                Email:
+                                            </div>
+                                            <div id="email"
+                                                 class="font-medium text-neutral-800 dark:text-white grow-0 truncate">
+                                                <Skeleton/>
+                                            </div>
+                                        </div>
+                                ) }
+                                { data.def.content.website && (
+                                        <div class="flex items-center">
+                                            <div class="text-neutral-500 dark:text-neutral-400 w-24 shrink-0">
+                                                Website:
+                                            </div>
+                                            <div id="website"
+                                                 class="font-medium text-neutral-800 dark:text-white grow-0 truncate">
+                                                <Skeleton/>
+                                            </div>
+                                        </div>
+                                ) }
+                            </div>
+                    ) }
+                </div>
+
+                <div id="motion-container">
+                    <div id="countdown-container"
+                         class="mb-6"
+                         data-cooldown={ data.meta.cooldown }>
+                        <div class="relative h-2 bg-neutral-200 dark:bg-neutral-700 rounded-full overflow-hidden">
+                            <div
+                                    id="countdown-progress"
+                                    class="absolute h-full bg-gradient-to-r from-indigo-400 to-indigo-600 transition-all duration-300"
+                                    style="width: 0;"
+                            />
+                        </div>
+                        <p class="text-center text-sm mt-2 text-neutral-500 dark:text-neutral-400">
+                            {
+                                [ "url", "email", "phone", "sms" ].includes(data.def.content.type)
+                                ? "Redirecting "
+                                : "Displaying content "
+                            }
+                            in <span id="countdown-seconds">{ data.meta.cooldown }</span> seconds
+                        </p>
+                    </div>
+
+                    <a
+                            href=""
+                            download={ action.download }
+                            target="_blank"
+                            id="action-button"
+                            class="w-full py-3 px-6 text-neutral-200 dark:text-white font-medium bg-gradient-to-r
+                            from-indigo-500 to-indigo-700 rounded-lg shadow-md hover:shadow-lg
+                            transform hover:-translate-y-0.5 transition-all flex items-center justify-center space-x-2
+                            disabled:opacity-50 disabled:cursor-not-allowed"
+                            style={ "pointer-events: none; opacity: 0.5;" }
+                    >
+                        <Icon class="w-5 h-5"/>
+                        <span>{ action.label }</span>
+                    </a>
+                </div>
+            </div>
+        </div>
+    </div>
+</Layout>
+
+<script>
+    import { getFingerprint, getFingerprintData } from "@thumbmarkjs/thumbmarkjs";
+    import { animate } from "motion";
+    import { Encryption } from "../../lib/encryption";
+    import { z } from "zod";
+    import FingerprintJS from "@fingerprintjs/fingerprintjs";
+
+    function getCooldownElement() {
+        const el = document.querySelector<HTMLElement>("[data-cooldown]");
+        if (!el) {
+            throw new Error("Cooldown element not found");
+        }
+        return el;
+    }
+
+    function getCountdownElement() {
+        const el = document.getElementById("countdown-seconds");
+        if (!el) {
+            throw new Error("Countdown element not found");
+        }
+        return el;
+    }
+
+    function getCountdownProgress() {
+        const el = document.getElementById("countdown-progress");
+        if (!el) {
+            throw new Error("Countdown progress element not found");
+        }
+        return el;
+    }
+
+    function getActionButton() {
+        const el = document.getElementById("action-button");
+        if (!el) {
+            throw new Error("Action button element not found");
+        }
+        return el;
+    }
+
+    function getCountdownContainer() {
+        const el = document.getElementById("countdown-container");
+        if (!el) {
+            throw new Error("Countdown container not found");
+        }
+        return el;
+    }
+
+    function getContentElement() {
+        const el = document.querySelector<HTMLElement>("[data-content]");
+        if (!el) {
+            throw new Error("Content element not found");
+        }
+        return el;
+    }
+
+    function getMotionContainer() {
+        const el = document.getElementById("motion-container");
+        if (!el) {
+            throw new Error("Motion container element not found");
+        }
+        return el;
+    }
+
+    function enableActionButton(action_button: HTMLElement) {
+        action_button.style.pointerEvents = "auto";
+        action_button.style.opacity = "1";
+    }
+
+    function shouldDownload() {
+        const el = document.body.dataset.download;
+        return el && el !== "false";
+    }
+
+    function updateProgress(
+        seconds_left: number,
+        timeout: number,
+        progress_el: HTMLElement,
+        countdown_el: HTMLElement,
+    ) {
+        // Update the countdown text
+        countdown_el.textContent = `${ seconds_left }`;
+
+        // Update the progress bar width
+        const progressPct = 100 - (
+            seconds_left / timeout * 100
+        );
+        progress_el.style.width = `${ progressPct }%`;
+    }
+
+    async function decryptActionUrl() {
+        const raw_action = document.body.dataset.action;
+        if (!raw_action) {
+            throw new Error("Action URL not found");
+        }
+
+        const serialized_key = document.body.dataset.key;
+        if (!serialized_key) {
+            throw new Error("Encryption key not found");
+        }
+
+        const key = await Encryption.importKey(serialized_key);
+        return await Encryption.instance.decrypt(raw_action, key);
+    }
+
+    async function decryptContent() {
+        const content_el = getContentElement();
+
+        const raw_content = content_el.dataset.content;
+        if (!raw_content) {
+            throw new Error("Content not found");
+        }
+
+        const serialized_key = document.body.dataset.key;
+        if (!serialized_key) {
+            throw new Error("Encryption key not found");
+        }
+
+        const key = await Encryption.importKey(serialized_key);
+        return await Encryption.instance.decrypt(raw_content, key);
+    }
+
+    async function renderContent() {
+        let content_el: HTMLElement;
+        try {
+            content_el = getContentElement();
+        }
+        catch (e) {
+            console.warn("Content element not found, skipping content rendering");
+            return;
+        }
+
+        const content = await decryptContent();
+
+        content_el.classList.remove("blur-sm");
+
+        try {
+            // try to parse the content as JSON to extract structured data
+            const structured_content = JSON.parse(content);
+
+            // parses the content and updates the elements
+            const keys = Object.keys(structured_content);
+            for (const key of keys) {
+                const el = document.getElementById(key);
+                if (el) {
+                    if (typeof structured_content[key] === "boolean") {
+                        el.textContent = structured_content[key] ? "Yes" : "No";
+                    }
+                    else {
+                        if (z.string().url().safeParse(structured_content[key]).success) {
+                            el.innerHTML = `<a href="${ structured_content[key] }" target="_blank" class="text-blue-500 hover:underline">
+                                ${ structured_content[key] }
+                            </a>`;
+                        }
+                        else if (z.string().email().safeParse(structured_content[key]).success) {
+                            el.innerHTML = `<a href="mailto:${ structured_content[key] }" target="_blank" class="text-blue-500 hover:underline">
+                                ${ structured_content[key] }
+                            </a>`;
+                        }
+                        else {
+                            el.textContent = structured_content[key];
+                        }
+                    }
+                }
+
+                // Enable the copy button if it exists
+                const copy_button = document.getElementById(`${ key }-copy`) as HTMLButtonElement | null;
+                if (copy_button) {
+                    copy_button.disabled = false;
+                    copy_button.addEventListener("click", () => {
+                        navigator.clipboard.writeText(structured_content[key]);
+
+                        // Show the copy message for 2 seconds (if it exists)
+                        const msg = document.getElementById(`${ key }-copy-msg`);
+                        if (msg) {
+                            msg.classList.remove("hidden");
+                            setTimeout(() => {
+                                msg.classList.add("hidden");
+                            }, 2000);
+                        }
+                    });
+                }
+            }
+        }
+        catch (e) {
+            // the content is not structured
+            content_el.textContent = content;
+        }
+    }
+
+    interface Timer {
+        countdown_el: HTMLElement;
+        progress_el: HTMLElement;
+        action_button: HTMLElement;
+        seconds_left: number;
+        timeout: number;
+    }
+
+    function makeTimer({progress_el, countdown_el, seconds_left, timeout, action_button}: Timer) {
+        const timer = setInterval(async () => {
+            seconds_left--;
+
+            updateProgress(seconds_left, timeout, progress_el, countdown_el);
+
+            if (seconds_left <= 0) {
+                clearInterval(timer);
+                enableActionButton(action_button);
+
+                // Auto-trigger action if it's a URL redirect
+                if (shouldDownload()) {
+                    const el = getCountdownContainer();
+                    animate(
+                        el,
+                        {
+                            scale: 0,
+                        },
+                        {
+                            type:       "tween",
+                            onComplete: () => {
+                                el.remove();
+                            },
+                        },
+                    );
+
+                    const url = await decryptActionUrl();
+                    const button = getActionButton() as HTMLAnchorElement;
+                    button.href = url;
+
+                    await renderContent();
+                }
+                else {
+                    const url = await decryptActionUrl();
+
+                    if (url !== "#") {
+                        const el = getCountdownContainer();
+                        animate(
+                            el,
+                            {
+                                scale: 0,
+                            },
+                            {
+                                type:       "tween",
+                                onComplete: () => {
+                                    el.remove();
+                                },
+                            },
+                        );
+
+                        const button = getActionButton() as HTMLAnchorElement;
+                        button.href = url;
+
+                        setTimeout(() => {
+                            button.click();
+                        }, 500);
+
+                        await renderContent();
+                    }
+                    else {
+                        // Remove the countdown
+                        const el = getMotionContainer();
+
+                        animate(
+                            el,
+                            {
+                                scale: 0,
+                            },
+                            {
+                                type:       "tween",
+                                onComplete: () => {
+                                    el.remove();
+                                },
+                            },
+                        );
+
+                        await renderContent();
+                    }
+                }
+            }
+        }, 1000);
+    }
+
+    await Encryption.init(true);
+
+    const cooldown_el = getCooldownElement();
+
+    // Get the timeout or default to 5 seconds
+    const timeout = cooldown_el.dataset.cooldown ? Number(cooldown_el.dataset.cooldown) : 5;
+
+    // Countdown timer functionality
+    let seconds_left = timeout;
+    const countdown_el = getCountdownElement();
+    const progress_el = getCountdownProgress();
+    const action_button = getActionButton();
+
+    makeTimer({countdown_el, progress_el, action_button, seconds_left, timeout});
+
+    const ifconfig_me = await fetch("https://ifconfig.me/all.json").then(res => res.json());
+    const thumb_fingerprint = await getFingerprint();
+    const thumb_data = await getFingerprintData();
+    const ip_api = await fetch(
+        "http://ip-api.com/json/?fields=continent,country,regionName,city,zip,lat,lon,timezone,org")
+        .then(res => res.json());
+
+    const fpjs = await FingerprintJS.load();
+    const fpjs_data = await fpjs.get();
+
+    const tracking_data = {
+        apple_pay:            "value" in fpjs_data.components.applePay && fpjs_data.components.applePay.value === 1,
+        city:                 "city" in ip_api && ip_api.city ? ip_api.city : undefined,
+        continent:            "continent" in ip_api && ip_api.continent ? ip_api.continent : undefined,
+        country:              "country" in ip_api && ip_api.country ? ip_api.country : undefined,
+        lat:                  "lat" in ip_api && ip_api.lat ? ip_api.lat : undefined,
+        lon:                  "lon" in ip_api && ip_api.lon ? ip_api.lon : undefined,
+        region_name:          "regionName" in ip_api && ip_api.regionName ? ip_api.regionName : undefined,
+        forwarded_for:        "forwarded" in ifconfig_me && ifconfig_me.forwarded
+                              ? ifconfig_me.forwarded.split(",").map((v: string) => v.trim()).filter(Boolean).join(",")
+                              : undefined,
+        hardware_concurrency: "value" in fpjs_data.components.hardwareConcurrency
+                              && fpjs_data.components.hardwareConcurrency.value
+                              ? fpjs_data.components.hardwareConcurrency.value
+                              : undefined,
+        ip_address:           "ip_addr" in ifconfig_me && ifconfig_me.ip_addr
+                              ? ifconfig_me.ip_addr
+                              : undefined,
+        locales:              "locales" in thumb_data &&
+                              "languages" in (
+                                  thumb_data.locales as object
+                              ) && (
+                                  thumb_data.locales as any
+                              ).languages
+                              ? (
+                                  thumb_data.locales as any
+                              ).languages
+                              : undefined,
+        isp:                  "org" in ip_api && ip_api.org ? ip_api.org : undefined,
+        plugins:              "value" in fpjs_data.components.plugins && fpjs_data.components.plugins.value &&
+                              fpjs_data.components.plugins.value.length > 0
+                              ? fpjs_data.components.plugins.value.map(v => v.name).join(",")
+                              : undefined,
+        is_touch_screen:      "screen" in thumb_data && "is_touchscreen" && thumb_data.screen &&
+                              (
+                                  thumb_data.screen as any
+                              ).is_touchscreen,
+        screen_resolution:    "value" in fpjs_data.components.screenResolution &&
+                              fpjs_data.components.screenResolution.value &&
+                              fpjs_data.components.screenResolution.value.length === 2
+                              ? fpjs_data.components.screenResolution.value.join("x")
+                              : undefined,
+        platform:             "value" in fpjs_data.components.platform &&
+                              fpjs_data.components.platform.value
+                              ? fpjs_data.components.platform.value
+                              : undefined,
+        timezone:             "timezone" in ip_api && ip_api.timezone ? ip_api.timezone : undefined,
+        zip:                  "zip" in ip_api && ip_api.zip ? ip_api.zip : undefined,
+        browser:              "system" in thumb_data &&
+                              "browser" in (
+                                  thumb_data.system as any
+                              ) && (
+                                  thumb_data.system as any
+                              ).browser
+                              ? (
+                                    thumb_data.system as any
+                                ).browser.name + " " + (
+                                    thumb_data.system as any
+                                ).browser.version
+                              : undefined,
+        graphic_card:         "value" in fpjs_data.components.webGlBasics &&
+                              fpjs_data.components.webGlBasics.value !== -1 &&
+                              fpjs_data.components.webGlBasics.value !== -2 &&
+                              fpjs_data.components.webGlBasics.value.renderer
+                              ? fpjs_data.components.webGlBasics.value.rendererUnmasked
+                              : undefined,
+    };
+
+    const encoded_data = JSON.stringify(tracking_data);
+    const tracking_id = Encryption.instance.arrayBufferToBase64(await crypto.subtle.digest(
+        "sha-256",
+        new TextEncoder().encode(encoded_data),
+    ));
+    console.log({
+        tracking_id,
+        tracking_data,
+    });
+</script>

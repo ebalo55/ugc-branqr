@@ -584,8 +584,8 @@ const QR_DYNAMIC_TYPE_RATING = z.object({
  * The schema for the form validation of user-defined values
  */
 export const QR_FORM_VALIDATION_SCHEMA = z.object({
-    name:    z.string().min(3).max(100),
-    content: z.discriminatedUnion("type", [
+    name:       z.string().min(3).max(100),
+    content:    z.discriminatedUnion("type", [
         // static types
         QR_STATIC_TYPE_URL,
         QR_STATIC_TYPE_TEXT,

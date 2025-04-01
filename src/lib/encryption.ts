@@ -22,12 +22,48 @@ export class Encryption {
 
     /**
      * Initialize the encryption instance.
+     * @param {boolean} volatile If true, the key will not be loaded from the environment.
      */
-    public static async init() {
+    public static async init(volatile: boolean = false) {
         if (!this._instance) {
             this._instance = new Encryption();
-            await this.loadKey();
+
+            if (!volatile) {
+                await this.loadKey();
+            }
         }
+    }
+
+    /**
+     * Generate a new encryption key, and return it as a base64url encoded string.
+     */
+    public static async makeKey() {
+        const key = await crypto.subtle.generateKey(
+            {
+                name:   "AES-GCM",
+                length: 256,
+            },
+            true,
+            [ "encrypt", "decrypt" ],
+        );
+
+        const exported_key = await crypto.subtle.exportKey("jwk", key);
+        return {serialized: btoa(JSON.stringify(exported_key)), key};
+    }
+
+    /**
+     * Import a key from a base64 encoded string.
+     * @param {string} serialized
+     */
+    public static async importKey(serialized: string) {
+        const key = JSON.parse(atob(serialized));
+        return await crypto.subtle.importKey(
+            "jwk",
+            key,
+            {name: "AES-GCM", length: 256},
+            true,
+            [ "encrypt", "decrypt" ],
+        );
     }
 
     /**
@@ -65,7 +101,7 @@ export class Encryption {
             new TextEncoder().encode(data),
         );
 
-        return Buffer.from(iv).toString("base64url") + "." + Buffer.from(result).toString("base64url");
+        return this.arrayBufferToBase64(iv.buffer) + "." + this.arrayBufferToBase64(result);
     }
 
     /**
@@ -79,14 +115,18 @@ export class Encryption {
         }
 
         const [ iv, encrypted ] = data.split(".");
+
+        const iv_buffer = this.base64ToArrayBuffer(iv!);
+        const encrypted_buffer = this.base64ToArrayBuffer(encrypted!);
+
         const result = await crypto.subtle.decrypt(
             {
                 name:      "AES-GCM",
-                iv:        Buffer.from(iv!, "base64url"),
+                iv: iv_buffer,
                 tagLength: 128,
             },
             key,
-            Buffer.from(encrypted!, "base64url"),
+            encrypted_buffer,
         );
 
         return new TextDecoder().decode(result);
@@ -95,10 +135,9 @@ export class Encryption {
     /**
      * Prepare the salt for the key derivation. Convert it to a Uint8Array.
      * @param {string} salt
-     * @returns {any}
      */
     public prepareSalt(salt: string) {
-        return Buffer.from(salt, "base64url");
+        return new Uint8Array(this.base64ToArrayBuffer(salt));
     }
 
     /**
@@ -146,8 +185,53 @@ export class Encryption {
         );
 
         return {
-            salt: Buffer.from(salt).toString("base64url"),
+            salt: this.arrayBufferToBase64(salt.buffer),
             derived_key,
         };
+    }
+
+    /**
+     * Convert ArrayBuffer to base64url string
+     * @param {ArrayBuffer} buffer
+     * @returns {string}
+     */
+    public arrayBufferToBase64(buffer: ArrayBufferLike): string {
+        try {
+            return Buffer.from(buffer).toString("base64");
+        }
+        catch (e) {
+            console.warn("Buffer not available, falling back to browser implementation");
+            // Browser fallback when Buffer is not available
+            const bytes = new Uint8Array(buffer);
+            let binary = "";
+            for (let i = 0; i < bytes.byteLength; i++) {
+                binary += String.fromCharCode(bytes[i]);
+            }
+            // Convert to base64
+            return btoa(binary);
+        }
+    }
+
+    /**
+     * Convert base64url string to ArrayBuffer
+     * @param {string} base64
+     * @returns {ArrayBuffer}
+     */
+    public base64ToArrayBuffer(base64: string): ArrayBuffer {
+        try {
+            const buf = new Uint8Array(Buffer.from(base64, "base64"));
+            return buf.buffer;
+        }
+        catch (e) {
+            console.warn("Buffer not available, falling back to browser implementation");
+            // Browser fallback when Buffer is not available
+
+            const binary = atob(base64);
+            const bytes = new Uint8Array(binary.length);
+            for (let i = 0; i < binary.length; i++) {
+                bytes[i] = binary.charCodeAt(i);
+            }
+            return bytes.buffer;
+        }
     }
 }

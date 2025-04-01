@@ -1,4 +1,3 @@
-import { createId } from "@paralleldrive/cuid2";
 import { z } from "astro:content";
 import { config } from "dotenv";
 import { unlink, writeFile } from "fs/promises";
@@ -29,7 +28,7 @@ async function storeDemoContent(spec: Content) {
         salt:       key_material.salt,
     };
 
-    const filename_name = `__DEMO__${ createId() }.json`;
+    const filename_name = `__DEMO__.json`;
     let folder_name: string;
     switch (spec.def.content.type) {
         case "url":
@@ -67,35 +66,128 @@ await all(pending);
 
 console.log("Storing demo content...");
 
+const static_types = [
+    "url",
+    "text",
+    "email",
+    "phone",
+    "wifi",
+    "vcard",
+    "sms",
+];
+
 await all([
-    storeDemoContent({
-        def:  {
-            name:       "__DEMO__url",
-            content:    {
-                type:     "url",
-                url:      "https://branqr.com",
-                settings: {
-                    track: true,
+    ...Array.from({length: static_types.length}, (v, i) => i).map((i) => {
+        let content: Content["def"]["content"];
+        switch (static_types[i]) {
+            case "url":
+                content = {
+                    type:     "url",
+                    url:      "https://example.com",
+                    settings: {
+                        track: true,
+                    },
+                };
+                break;
+            case "text":
+                content = {
+                    type:     "text",
+                    text:     "Lorem ipsum dolor sit amet, consectetuer adipiscing elit.\n" +
+                              "\n" +
+                              "Aenean commodo ligula eget dolor. Aenean massa. Cum sociis natoque penatibus et",
+                    settings: {
+                        track: true,
+                    },
+                };
+                break;
+            case "email":
+                content = {
+                    type:     "email",
+                    email:    "john@example.com",
+                    settings: {
+                        track: true,
+                    },
+                    subject:  "Lorem ipsum dolor sit amet",
+                    body:     "Lorem ipsum dolor sit amet, consectetuer adipiscing elit.\n" +
+                              "\n" +
+                              "Aenean commodo ligula eget dolor. Aenean massa. Cum sociis natoque penatibus et",
+                };
+                break;
+            case "phone":
+                content = {
+                    type:     "phone",
+                    phone:    "+49123456789",
+                    settings: {
+                        track: true,
+                    },
+                };
+                break;
+            case "wifi":
+                content = {
+                    type:     "wifi",
+                    ssid:     "MyWifi",
+                    password: "MyPassword",
+                    hidden:   false,
+                    settings: {
+                        track: true,
+                    },
+                };
+                break;
+            case "vcard":
+                content = {
+                    type:         "vcard",
+                    first_name:   "John",
+                    last_name:    "Doe",
+                    organization: "Example Inc.",
+                    title:        "Software Engineer",
+                    website:      "https://example.com",
+                    address:      "123 Main St, City, Country",
+                    email:        "john@example.com",
+                    phone:        "+49123456789",
+                    settings:     {
+                        track: true,
+                    },
+                };
+                break;
+            case "sms":
+                content = {
+                    type:     "sms",
+                    phone:    "+49123456789",
+                    text:     "Lorem ipsum dolor sit amet, consectetuer adipiscing elit.\n" +
+                              "\n" +
+                              "Aenean commodo ligula eget dolor. Aenean massa. Cum sociis natoque penatibus et",
+                    settings: {
+                        track: true,
+                    },
+                };
+                break;
+            default:
+                throw new Error(`Unknown type "${ static_types[i] }"`);
+        }
+
+        return storeDemoContent({
+            def:  {
+                name:       `__DEMO__${ static_types[i] }`,
+                content,
+                style:      {
+                    logo:       {},
+                    foreground: {},
+                    background: {},
                 },
+                automation: {},
+                advanced:   {},
             },
-            style:      {
-                logo:       {},
-                foreground: {},
-                background: {},
+            meta: {
+                owner:                  process.env.DEMO_OWNER!,
+                cooldown:               20,
+                integrations:           {
+                    gtag:    process.env.DEMO_GTAG!,
+                    webhook: process.env.DEMO_WEBHOOK!,
+                },
+                with_advertising:       false,
+                with_advanced_tracking: true,
             },
-            automation: {},
-            advanced:   {},
-        },
-        meta: {
-            owner:                  process.env.DEMO_OWNER!,
-            cooldown:               20,
-            integrations:           {
-                gtag:    process.env.DEMO_GTAG!,
-                webhook: process.env.DEMO_WEBHOOK!,
-            },
-            with_advertising:       true,
-            with_advanced_tracking: true,
-        },
+        });
     }),
 ]);
 

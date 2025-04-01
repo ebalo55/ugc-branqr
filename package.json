@@ -12,18 +12,24 @@
     "dependencies": {
         "@astrojs/sitemap": "^3.3.0",
         "@astrojs/ts-plugin": "^1.10.4",
+        "@fingerprintjs/fingerprintjs": "^4.6.1",
+        "@microsoft/clarity": "^1.0.0",
         "@playform/compress": "^0.1.7",
         "@tailwindcss/vite": "^4.0.17",
+        "@thumbmarkjs/thumbmarkjs": "^0.20.0",
         "astro": "^5.5.5",
         "astro-embed": "^0.9.0",
         "astro-seo": "^0.8.4",
+        "clsx": "^2.1.1",
         "dayjs": "^1.11.13",
+        "lucide-astro": "^0.485.0",
+        "motion": "^12.6.2",
         "radash": "^12.1.0",
         "schema-dts": "1.1.5",
-        "tailwindcss": "^4.0.17"
+        "tailwindcss": "^4.0.17",
+        "zod": "^3.24.2"
     },
     "devDependencies": {
-        "@paralleldrive/cuid2": "^2.2.2",
         "@types/node": "^22.13.14",
         "dotenv": "^16.4.7",
         "glob": "^11.0.1",

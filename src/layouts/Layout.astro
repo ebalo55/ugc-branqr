@@ -6,9 +6,13 @@ import type { Thing } from "schema-dts";
 interface Props extends SEOProps {
     keywords?: string[];
     schema?: Thing;
+    data?: {
+        [k: string]: string
+    };
 }
 
 const {
+          data,
           title       = "BranQR | Transform Your QR Code Experience",
           description = "BranQR is the all-in-one solution to create, customize, and track branded QR codes. Unlock powerful analytics, dynamic redirects, and real-time insights to boost your marketing success.",
           canonical   = "https://branqr.com",
@@ -52,11 +56,18 @@ const {
               },
           },
       } = Astro.props;
+const env = import.meta.env.ENVIRONMENT ?? import.meta.env.MODE ?? "production";
 ---
 
 <!doctype html>
 <html lang="en">
     <head>
+        <!-- <script id="CookieConsent"
+                src="https://policy.app.cookieinformation.com/uc.js"
+                data-culture="EN"
+                data-gcm-version="2.0"
+                type="text/javascript"
+                is:inline/> -->
         <meta charset="UTF-8"/>
         <meta name="viewport"
               content="width=device-width, initial-scale=1.0"/>
@@ -82,8 +93,19 @@ const {
                 set:html={ JSON.stringify(schema) }/>
         <link rel="sitemap"
               href="/sitemap-index.xml"/>
+        <title>
+            { title }
+        </title>
+        <script>
+            import Clarity from "@microsoft/clarity";
+
+            Clarity.init("qxd1bknavv");
+        </script>
     </head>
-    <body>
+    <body {...Object.entries(data ?? {}).reduce((acc, [key, value]) => {
+        acc[`data-${key}`] = value;
+        return acc;
+        }, {} as Record<string, string>)}>
         <slot/>
     </body>
 </html>
