@@ -158,9 +158,10 @@ const content_demo = Array.from(
 ---
 
 <Layout data={ {
-    key:      client_encryption_key.serialized,
-    action:   secret_action_url,
-    download: action.download ?? "false",
+    key:            client_encryption_key.serialized,
+    action:         secret_action_url,
+    download:       action.download ?? "false",
+    tracking_level: data.meta.with_advanced_tracking ? "full" : "basic",
 } }>
     {
         data.meta.with_advertising &&
@@ -370,11 +371,10 @@ const content_demo = Array.from(
 </Layout>
 
 <script>
-    import { getFingerprint, getFingerprintData } from "@thumbmarkjs/thumbmarkjs";
     import { animate } from "motion";
     import { Encryption } from "../../lib/encryption";
     import { z } from "zod";
-    import FingerprintJS from "@fingerprintjs/fingerprintjs";
+    import { getTrackingData, TrackingLevel } from "../../lib/tracker";
 
     function getCooldownElement() {
         const el = document.querySelector<HTMLElement>("[data-cooldown]");
@@ -649,6 +649,14 @@ const content_demo = Array.from(
         }, 1000);
     }
 
+    getTrackingData([ "full", "basic" ].includes(document.body.dataset.tracking_level ?? "")
+                    ? document.body.dataset.tracking_level! as TrackingLevel
+                    : "basic")
+        .then((tracking) => {
+            console.log("Tracking data:", tracking);
+            // TODO: Send tracking data to the server
+        });
+
     await Encryption.init(true);
 
     const cooldown_el = getCooldownElement();
@@ -663,92 +671,4 @@ const content_demo = Array.from(
     const action_button = getActionButton();
 
     makeTimer({countdown_el, progress_el, action_button, seconds_left, timeout});
-
-    const ifconfig_me = await fetch("https://ifconfig.me/all.json").then(res => res.json());
-    const thumb_fingerprint = await getFingerprint();
-    const thumb_data = await getFingerprintData();
-    const ip_api = await fetch(
-        "http://ip-api.com/json/?fields=continent,country,regionName,city,zip,lat,lon,timezone,org")
-        .then(res => res.json());
-
-    const fpjs = await FingerprintJS.load();
-    const fpjs_data = await fpjs.get();
-
-    const tracking_data = {
-        apple_pay:            "value" in fpjs_data.components.applePay && fpjs_data.components.applePay.value === 1,
-        city:                 "city" in ip_api && ip_api.city ? ip_api.city : undefined,
-        continent:            "continent" in ip_api && ip_api.continent ? ip_api.continent : undefined,
-        country:              "country" in ip_api && ip_api.country ? ip_api.country : undefined,
-        lat:                  "lat" in ip_api && ip_api.lat ? ip_api.lat : undefined,
-        lon:                  "lon" in ip_api && ip_api.lon ? ip_api.lon : undefined,
-        region_name:          "regionName" in ip_api && ip_api.regionName ? ip_api.regionName : undefined,
-        forwarded_for:        "forwarded" in ifconfig_me && ifconfig_me.forwarded
-                              ? ifconfig_me.forwarded.split(",").map((v: string) => v.trim()).filter(Boolean).join(",")
-                              : undefined,
-        hardware_concurrency: "value" in fpjs_data.components.hardwareConcurrency
-                              && fpjs_data.components.hardwareConcurrency.value
-                              ? fpjs_data.components.hardwareConcurrency.value
-                              : undefined,
-        ip_address:           "ip_addr" in ifconfig_me && ifconfig_me.ip_addr
-                              ? ifconfig_me.ip_addr
-                              : undefined,
-        locales:              "locales" in thumb_data &&
-                              "languages" in (
-                                  thumb_data.locales as object
-                              ) && (
-                                  thumb_data.locales as any
-                              ).languages
-                              ? (
-                                  thumb_data.locales as any
-                              ).languages
-                              : undefined,
-        isp:                  "org" in ip_api && ip_api.org ? ip_api.org : undefined,
-        plugins:              "value" in fpjs_data.components.plugins && fpjs_data.components.plugins.value &&
-                              fpjs_data.components.plugins.value.length > 0
-                              ? fpjs_data.components.plugins.value.map(v => v.name).join(",")
-                              : undefined,
-        is_touch_screen:      "screen" in thumb_data && "is_touchscreen" && thumb_data.screen &&
-                              (
-                                  thumb_data.screen as any
-                              ).is_touchscreen,
-        screen_resolution:    "value" in fpjs_data.components.screenResolution &&
-                              fpjs_data.components.screenResolution.value &&
-                              fpjs_data.components.screenResolution.value.length === 2
-                              ? fpjs_data.components.screenResolution.value.join("x")
-                              : undefined,
-        platform:             "value" in fpjs_data.components.platform &&
-                              fpjs_data.components.platform.value
-                              ? fpjs_data.components.platform.value
-                              : undefined,
-        timezone:             "timezone" in ip_api && ip_api.timezone ? ip_api.timezone : undefined,
-        zip:                  "zip" in ip_api && ip_api.zip ? ip_api.zip : undefined,
-        browser:              "system" in thumb_data &&
-                              "browser" in (
-                                  thumb_data.system as any
-                              ) && (
-                                  thumb_data.system as any
-                              ).browser
-                              ? (
-                                    thumb_data.system as any
-                                ).browser.name + " " + (
-                                    thumb_data.system as any
-                                ).browser.version
-                              : undefined,
-        graphic_card:         "value" in fpjs_data.components.webGlBasics &&
-                              fpjs_data.components.webGlBasics.value !== -1 &&
-                              fpjs_data.components.webGlBasics.value !== -2 &&
-                              fpjs_data.components.webGlBasics.value.renderer
-                              ? fpjs_data.components.webGlBasics.value.rendererUnmasked
-                              : undefined,
-    };
-
-    const encoded_data = JSON.stringify(tracking_data);
-    const tracking_id = Encryption.instance.arrayBufferToBase64(await crypto.subtle.digest(
-        "sha-256",
-        new TextEncoder().encode(encoded_data),
-    ));
-    console.log({
-        tracking_id,
-        tracking_data,
-    });
 </script>
