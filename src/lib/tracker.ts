@@ -1,6 +1,8 @@
 import FingerprintJS from "@fingerprintjs/fingerprintjs";
 import { getFingerprintData } from "@thumbmarkjs/thumbmarkjs";
-import { all } from "radash";
+import { all, pick } from "radash";
+import { cachedFunction } from "./cache";
+import { dayjs } from "./dayjs";
 
 /**
  * Basic tracking data containing essential information about the visitor
@@ -41,7 +43,7 @@ export type TrackingData = BasicTrackingData | FullTrackingData;
 
 export type TrackingLevel = "basic" | "full"
 
-function mapPlatform(platform: string): string {
+export function mapPlatform(platform: string): string {
     platform = platform.toLowerCase();
 
     if (platform.includes("android")) {
@@ -62,24 +64,81 @@ function mapPlatform(platform: string): string {
     return "other";
 }
 
+interface IfconfigMeResponse {
+    ip_addr: string;
+    user_agent: string;
+    port: string;
+    method: string;
+    encoding: string;
+    mime: string;
+    via?: string;
+    forwarded?: string;
+    language: string;
+}
+
+/**
+ * Fetches the user's IP address and other information from ifconfig.me.
+ * @returns {Promise<IfconfigMeResponse>}
+ */
+function internal_ifconfigMe(): Promise<IfconfigMeResponse> {
+    return fetch("https://ifconfig.me/all.json").then(res => res.json());
+}
+
+/**
+ * Fetches the user's IP address and other information from ifconfig.me and caches the result.
+ * @returns {Promise<IfconfigMeResponse>}
+ */
+export const ifconfigMe = cachedFunction(
+    internal_ifconfigMe,
+    dayjs.utc().add(dayjs.duration({days: 1})).unix(),
+    {key: "ifconfig_me"},
+);
+
+interface IpApiResponse {
+    country: string;
+    city: string;
+    timezone: string;
+    isp: string;
+}
+
+/**
+ * Fetches the user's IP address and other information from ip-api.com.
+ * @returns {Promise<IpApiResponse>}
+ */
+export function internal_ipApi(): Promise<IpApiResponse> {
+    return fetch("http://ip-api.com/json/?fields=country,city,timezone,isp").then(res => res.json());
+}
+
+/**
+ * Fetches the user's IP address and other information from ip-api.com and caches the result.
+ * @type {() => Promise<IpApiResponse>}
+ */
+export const ipApi = cachedFunction(
+    internal_ipApi,
+    dayjs.utc().add(dayjs.duration({days: 1})).unix(),
+    {key: "ip_api"},
+);
+
 /**
  * Get tracking data from various sources.
  */
 export async function getTrackingData(level: TrackingLevel): Promise<TrackingData> {
-    const {
+    let {
               ifconfig_me,
               thumb_data,
               ip_api,
               fpjs_data,
           } = await all({
-        ifconfig_me: fetch("https://ifconfig.me/all.json").then(res => res.json()),
+        ifconfig_me: ifconfigMe(),
         thumb_data:  getFingerprintData(),
-        ip_api:      level === "full"
-                     ? fetch("http://ip-api.com/json/?fields=country,city,timezone,isp")
-                         .then(res => res.json())
-                     : fetch("http://ip-api.com/json/?fields=timezone").then(res => res.json()),
+        ip_api:      ipApi(),
         fpjs_data:   FingerprintJS.load().then(fp => fp.get()),
     });
+
+    // Filter out unnecessary data based on the tracking level
+    if (level !== "full") {
+        ip_api = pick(ip_api, [ "timezone" ]) as any;
+    }
 
     return {
         apple_pay:         "value" in fpjs_data.components.applePay && fpjs_data.components.applePay.value === 1,

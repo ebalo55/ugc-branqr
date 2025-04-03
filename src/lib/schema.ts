@@ -16,12 +16,10 @@ import {
     QrColorType,
     QrShape,
     RatingType,
-    RenewCriteria,
     ReversedCountries,
     ReversedLocales,
     ShowcaseStyle,
     Social,
-    ThresholdScanFrequency,
     Weekday,
 } from "./enum";
 
@@ -622,70 +620,43 @@ export const QR_FORM_VALIDATION_SCHEMA = z.object({
                 times: z.number().int().min(1),
             }),
         ]).optional(),
-        renew:      z.discriminatedUnion("type", [
-            z.object({
-                type: RenewCriteria.extract([ "never" ]).optional(),
-            }),
-            z.object({
-                type: RenewCriteria.extract([ "time" ]),
-                at:   z.date(),
-            }),
-            z.object({
-                type: RenewCriteria.extract([ "manually" ]),
-            }),
-        ]).optional(),
         starts_at:  z.date().optional(),
     }),
     advanced:   z.object({
-        localization: z.object({
-            enabled: z.boolean().optional().default(false),
-            locales: z.array(z.object({
-                locale:      z.union([ ReversedLocales, z.literal("default") ]),
-                redirect_to: z.string().url().nonempty(),
-            })).min(1).max(5, "Locales must contain at most 5 items"),
-        }).optional(),
-        devices:      z.array(z.object({
-            type:        z.union([ DeviceType, z.literal("default") ]),
+        smart_redirection: z.array(z.object({
+            locales:     z.array(z.union([ ReversedLocales, z.literal("default") ]))
+                             .max(5, "Each smart redirection can have at most 5 locales")
+                             .optional(),
+            devices:     z.array(z.union([ DeviceType, z.literal("default") ]))
+                             .max(5, "Each smart redirection can have at most 5 devices")
+                             .optional(),
+            hour_ranges: z.array(
+                z.object({
+                    from: z.string().time(),
+                    to:   z.string().time(),
+                }).refine(
+                    v => {
+                        const from = dayjs(v.from, "HH:mm");
+                        const to = dayjs(v.to, "HH:mm");
+
+                        return from.isBefore(to);
+                    },
+                    {
+                        message: "The start date must be before the end date",
+                    },
+                ),
+            ).max(5, "Smart redirection can contain at most 5 hour ranges")
+                             .optional(),
             redirect_to: z.string().url().nonempty(),
-        })).max(5, "At most 5 rules are allowed for device based redirections").optional(),
-        times:        z.array(
-            z.object({
-                from:        z.string().regex(/^([01]\d|2[0-3]):([0-5]\d)$/, "must be a valid time"),
-                to:          z.string().regex(/^([01]\d|2[0-3]):([0-5]\d)$/, "must be a valid time"),
-                redirect_to: z.string().url().nonempty(),
-            }).refine(
-                v => {
-                    const [ from_h, from_m ] = v.from.split(":").map(Number);
-                    const [ to_h, to_m ] = v.to.split(":").map(Number);
-
-                    const from = dayjs().startOf("day").add(dayjs.duration({hours: from_h, minutes: from_m}));
-                    const to = dayjs().startOf("day").add(dayjs.duration({hours: to_h, minutes: to_m}));
-
-                    return from.isBefore(to);
-                },
-                {
-                    message: "The start date must be before the end date",
-                },
-            ),
-        ).max(5, "At most 5 rules are allowed for time based redirections").optional(),
-        thresholds:   z.array(
-            z.object({
-                frequency:   ThresholdScanFrequency,
-                scans:       z.number().positive().int(),
-                redirect_to: z.string().url().nonempty(),
-            }),
-        ).max(5, "At most 5 rules are allowed for threshold based redirections").optional(),
-        restrictions: z.object({
+        })).max(5, "Smart redirection can contain at most 5 items").optional(),
+        restrictions:      z.object({
             blacklisted_ips: z.array(z.string().ip()).max(10, "At most 10 IPs can be blacklisted").optional(),
-            geo_fencing:     z.object({
-                enabled:   z.boolean().optional().default(false),
-                locations: z.array(z.object({
-                    country: ReversedCountries,
-                    city:    z.string().optional(),
-                })).min(1).max(5, "At most 5 locations can be defined"),
-            }).optional(),
+            geo_fencing: z.array(z.object({
+                country: ReversedCountries,
+                city:    z.string().optional(),
+            })).min(1).max(5, "At most 5 locations can be defined").optional(),
         }).optional(),
-        attribution:  z.object({
+        attribution:       z.object({
             campaign:    z.string().max(200).optional(),
             content:     z.string().max(200).optional(),
             search_term: z.string().max(200).optional(),

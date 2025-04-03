@@ -3,7 +3,7 @@ import { config } from "dotenv";
 import { unlink, writeFile } from "fs/promises";
 import { globSync } from "glob";
 import { all } from "radash";
-import type { ContentSchema } from "../src/content.config.ts";
+import type { ContentSchema } from "../src/content.config";
 import { Encryption } from "../src/lib/encryption";
 import { QR_CODE_SCHEMA } from "../src/lib/schema";
 

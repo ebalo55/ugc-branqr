@@ -1,0 +1,30 @@
+---
+import Layout from "../layouts/Layout.astro";
+import { OctagonX } from "lucide-astro";
+---
+
+<Layout>
+    <main class="bg-neutral-50 dark:bg-neutral-900 min-h-screen flex items-center justify-center p-4">
+        <div class="w-full max-w-md p-8 bg-white dark:bg-neutral-800 rounded-xl shadow-lg text-center">
+            <div class="flex justify-center mb-6">
+                <div class="w-16 h-16 bg-red-100 dark:bg-red-900/30 rounded-full flex items-center justify-center">
+                    <OctagonX class="h-8 w-8 text-red-500 dark:text-red-400"/>
+                </div>
+            </div>
+
+            <h1 class="text-2xl font-semibold text-neutral-800 dark:text-white mb-4">Access Restricted</h1>
+
+            <p class="text-neutral-600 dark:text-neutral-300 mb-6">
+                We're sorry, but you cannot access this content from your current location or IP address.
+            </p>
+
+            <div class="border-t border-neutral-200 dark:border-neutral-700 pt-6 mt-6">
+                <a href="/"
+                   class="inline-flex items-center justify-center px-5 py-2 border border-transparent text-base 
+                   font-medium rounded-md text-white bg-indigo-600 hover:bg-indigo-700">
+                    Return to Homepage
+                </a>
+            </div>
+        </div>
+    </main>
+</Layout>

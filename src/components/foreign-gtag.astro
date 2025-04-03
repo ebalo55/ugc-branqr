@@ -1,0 +1,21 @@
+---
+interface Props {
+    gtag: string,
+}
+
+const {gtag} = Astro.props;
+---
+
+<script async
+        src={ `https://www.googletagmanager.com/gtag/js?id=${ gtag }&l=foreign_dl` }
+        is:inline/>
+
+<script is:inline>
+    window.foreign_dl = window.foreign_dl || [];
+
+    function gtagForeign() {foreign_dl.push(arguments);}
+
+    gtagForeign("js", new Date());
+
+    gtagForeign("config", {gtag});
+</script>

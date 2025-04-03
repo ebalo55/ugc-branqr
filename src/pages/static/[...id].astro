@@ -2,24 +2,12 @@
 import { getEntry, z } from "astro:content";
 import { Link, Mail, MessageCircleMore, PhoneCall, SquareUser, Text, Wifi, Copy } from "lucide-astro";
 import Ads from "../../components/ads.astro";
+import ForeignGtag from "../../components/foreign-gtag.astro";
 import Skeleton from "../../components/skeleton.astro";
 import Layout from "../../layouts/Layout.astro";
 import { getCollection } from "astro:content";
 import { Encryption } from "../../lib/encryption";
 import { QR_CODE_SCHEMA } from "../../lib/schema";
-
-/**
- * TODO:
- *  - handle the following qr code features:
- *      - advanced localization redirect
- *      - advanced device redirect
- *      - advanced daytime redirect
- *      - advanced threshold redirect
- *      - blacklisted ip
- *      - geo-fencing
- *      - calling webhook
- *      - appending custom gtag
- */
 
 export async function getStaticPaths() {
     const collection = await getCollection("static_content");
@@ -128,8 +116,8 @@ const iconMap = {
 
 const Icon = iconMap[data.def.content.type as keyof typeof iconMap] || Text;
 
-const title = "QR Code Content";
-const description = "Scan the QR code to view the content.";
+const title = "Your QR Code Content";
+const description = "Thanks for scanning! Your requested information is just moments away.";
 
 const client_encryption_key = await Encryption.makeKey();
 const secret_action_url = await Encryption.instance.encrypt(action.url, client_encryption_key.key);
@@ -169,6 +157,16 @@ const content_demo = Array.from(
     {length: 30},
     () => content.substring(0, Math.floor(Math.random() * 7)),
 ).join(" ");
+
+const smart_redirection = await Encryption.instance.encrypt(
+    JSON.stringify(data.def.advanced.smart_redirection ?? []),
+    client_encryption_key.key,
+);
+
+const restrictions = await Encryption.instance.encrypt(
+    JSON.stringify(data.def.advanced.restrictions ?? {}),
+    client_encryption_key.key,
+);
 ---
 
 <Layout data={ {
@@ -176,9 +174,16 @@ const content_demo = Array.from(
     action:         secret_action_url,
     download:       action.download ?? "false",
     tracking_level: data.meta.with_advanced_tracking ? "full" : "basic",
-    api:     import.meta.env.API_URL,
-    code_id: id,
+    api:      import.meta.env.API_URL,
+    code_id:  id,
+    smart_redirection,
+    restrictions,
+    callback: data.meta.integrations.webhook ?? "",
 } }>
+    {
+        data.meta.integrations.gtag &&
+        <ForeignGtag gtag={ data.meta.integrations.gtag }/>
+    }
     {
         data.meta.with_advertising &&
         <Ads/>
@@ -388,65 +393,13 @@ const content_demo = Array.from(
 
 <script>
     import { animate } from "motion";
+    import { all } from "radash";
+    import { smartRedirect } from "../../lib/dynamic-routing";
     import { Encryption } from "../../lib/encryption";
     import { z } from "zod";
+    import { getElementOrFail } from "../../lib/get-element-or-fail";
+    import { shouldRestrictAccess } from "../../lib/restrictions";
     import { getTrackingData, type TrackingData, type TrackingLevel } from "../../lib/tracker";
-
-    function getCooldownElement() {
-        const el = document.querySelector<HTMLElement>("[data-cooldown]");
-        if (!el) {
-            throw new Error("Cooldown element not found");
-        }
-        return el;
-    }
-
-    function getCountdownElement() {
-        const el = document.getElementById("countdown-seconds");
-        if (!el) {
-            throw new Error("Countdown element not found");
-        }
-        return el;
-    }
-
-    function getCountdownProgress() {
-        const el = document.getElementById("countdown-progress");
-        if (!el) {
-            throw new Error("Countdown progress element not found");
-        }
-        return el;
-    }
-
-    function getActionButton() {
-        const el = document.getElementById("action-button");
-        if (!el) {
-            throw new Error("Action button element not found");
-        }
-        return el;
-    }
-
-    function getCountdownContainer() {
-        const el = document.getElementById("countdown-container");
-        if (!el) {
-            throw new Error("Countdown container not found");
-        }
-        return el;
-    }
-
-    function getContentElement() {
-        const el = document.querySelector<HTMLElement>("[data-content]");
-        if (!el) {
-            throw new Error("Content element not found");
-        }
-        return el;
-    }
-
-    function getMotionContainer() {
-        const el = document.getElementById("motion-container");
-        if (!el) {
-            throw new Error("Motion container element not found");
-        }
-        return el;
-    }
 
     function enableActionButton(action_button: HTMLElement) {
         action_button.style.pointerEvents = "auto";
@@ -490,7 +443,7 @@ const content_demo = Array.from(
     }
 
     async function decryptContent() {
-        const content_el = getContentElement();
+        const content_el = getElementOrFail("[data-content]", "query-selector");
 
         const raw_content = content_el.dataset.content;
         if (!raw_content) {
@@ -509,7 +462,7 @@ const content_demo = Array.from(
     async function renderContent() {
         let content_el: HTMLElement;
         try {
-            content_el = getContentElement();
+            content_el = getElementOrFail("[data-content]", "query-selector");
         }
         catch (e) {
             console.warn("Content element not found, skipping content rendering");
@@ -594,7 +547,7 @@ const content_demo = Array.from(
 
                 // Auto-trigger action if it's a URL redirect
                 if (shouldDownload()) {
-                    const el = getCountdownContainer();
+                    const el = getElementOrFail("countdown-container");
                     animate(
                         el,
                         {
@@ -609,16 +562,24 @@ const content_demo = Array.from(
                     );
 
                     const url = await decryptActionUrl();
-                    const button = getActionButton() as HTMLAnchorElement;
+                    const button = getElementOrFail<HTMLAnchorElement>("action-button");
                     button.href = url;
 
                     await renderContent();
                 }
                 else {
-                    const url = await decryptActionUrl();
+                    let {url, dynamic_redirection} = await all({
+                        url:                 decryptActionUrl(),
+                        dynamic_redirection: smartRedirect(),
+                    });
+
+                    // override the url with the dynamic redirection if it exists
+                    if (dynamic_redirection) {
+                        url = dynamic_redirection;
+                    }
 
                     if (url !== "#") {
-                        const el = getCountdownContainer();
+                        const el = getElementOrFail("countdown-container");
                         animate(
                             el,
                             {
@@ -632,7 +593,7 @@ const content_demo = Array.from(
                             },
                         );
 
-                        const button = getActionButton() as HTMLAnchorElement;
+                        const button = getElementOrFail<HTMLAnchorElement>("action-button");
                         button.href = url;
 
                         setTimeout(() => {
@@ -643,7 +604,7 @@ const content_demo = Array.from(
                     }
                     else {
                         // Remove the countdown
-                        const el = getMotionContainer();
+                        const el = getElementOrFail("motion-container");
 
                         animate(
                             el,
@@ -665,6 +626,12 @@ const content_demo = Array.from(
         }, 1000);
     }
 
+    await Encryption.init(true);
+
+    if (await shouldRestrictAccess()) {
+        window.location.href = "/restricted";
+    }
+
     getTrackingData([ "full", "basic" ].includes(document.body.dataset.tracking_level ?? "")
                     ? document.body.dataset.tracking_level! as TrackingLevel
                     : "basic")
@@ -682,20 +649,31 @@ const content_demo = Array.from(
                 body:    JSON.stringify(tracking),
             }).then(() => console.log("Tracking data sent"))
                 .catch((error) => console.error("Error sending tracking data:", error));
+
+            // check if a webhook is defined
+            if (!!document.body.dataset.callback) {
+                fetch(document.body.dataset.callback, {
+                    method:  "POST",
+                    headers: {
+                        "Content-Type": "application/json",
+                    },
+                    body:    JSON.stringify(tracking),
+                    mode:    "no-cors",
+                }).then(() => console.log("Webhook data sent"))
+                    .catch((error) => console.error("Error sending webhook data:", error));
+            }
         });
 
-    await Encryption.init(true);
-
-    const cooldown_el = getCooldownElement();
+    const cooldown_el = getElementOrFail("[data-cooldown]", "query-selector");
 
     // Get the timeout or default to 5 seconds
     const timeout = cooldown_el.dataset.cooldown ? Number(cooldown_el.dataset.cooldown) : 5;
 
     // Countdown timer functionality
-    let seconds_left = timeout;
-    const countdown_el = getCountdownElement();
-    const progress_el = getCountdownProgress();
-    const action_button = getActionButton();
+    let seconds_left = 5;//timeout;
+    const countdown_el = getElementOrFail("countdown-seconds");
+    const progress_el = getElementOrFail("countdown-progress");
+    const action_button = getElementOrFail("action-button");
 
     makeTimer({countdown_el, progress_el, action_button, seconds_left, timeout});
 </script>

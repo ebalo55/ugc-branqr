@@ -62,12 +62,21 @@ const env = import.meta.env.ENVIRONMENT ?? import.meta.env.MODE ?? "production";
 <!doctype html>
 <html lang="en">
     <head>
-        <!-- <script id="CookieConsent"
-                src="https://policy.app.cookieinformation.com/uc.js"
-                data-culture="EN"
-                data-gcm-version="2.0"
-                type="text/javascript"
-                is:inline/> -->
+        <script is:inline>(
+            function(w, d, s, l, i) {
+                w[l] = w[l] || [];
+                w[l].push({
+                    "gtm.start":
+                        new Date().getTime(), event: "gtm.js",
+                });
+                var f = d.getElementsByTagName(s)[0];
+                var j = d.createElement(s), dl = l != "dataLayer" ? "&l=" + l : "";
+                j.async = true;
+                j.src =
+                    "https://www.googletagmanager.com/gtm.js?id=" + i + dl;
+                f.parentNode.insertBefore(j, f);
+            }
+        )(window, document, "script", "dataLayer", "GTM-P8ZBJ4JP");</script>
         <meta charset="UTF-8"/>
         <meta name="viewport"
               content="width=device-width, initial-scale=1.0"/>
@@ -106,6 +115,12 @@ const env = import.meta.env.ENVIRONMENT ?? import.meta.env.MODE ?? "production";
         acc[`data-${key}`] = value;
         return acc;
         }, {} as Record<string, string>)}>
+        <noscript>
+            <iframe src="https://www.googletagmanager.com/ns.html?id=GTM-P8ZBJ4JP"
+                    height="0"
+                    width="0"
+                    style="display:none;visibility:hidden"></iframe>
+        </noscript>
         <slot/>
     </body>
 </html>
