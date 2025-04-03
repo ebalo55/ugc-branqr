@@ -17,4 +17,5 @@ dayjs.extend(advanced_format);
 type Dayjs = dayjs.Dayjs;
 export { dayjs, type Dayjs };
 
+export type utc = typeof utc;
 export type { Duration, DurationUnitsObjectType, DurationUnitType, CreateDurationType } from "dayjs/plugin/duration";

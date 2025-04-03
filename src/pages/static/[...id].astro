@@ -8,6 +8,19 @@ import { getCollection } from "astro:content";
 import { Encryption } from "../../lib/encryption";
 import { QR_CODE_SCHEMA } from "../../lib/schema";
 
+/**
+ * TODO:
+ *  - handle the following qr code features:
+ *      - advanced localization redirect
+ *      - advanced device redirect
+ *      - advanced daytime redirect
+ *      - advanced threshold redirect
+ *      - blacklisted ip
+ *      - geo-fencing
+ *      - calling webhook
+ *      - appending custom gtag
+ */
+
 export async function getStaticPaths() {
     const collection = await getCollection("static_content");
     return collection.map(item => (
@@ -151,6 +164,7 @@ switch (data.def.content.type) {
         );
 
 }
+
 const content_demo = Array.from(
     {length: 30},
     () => content.substring(0, Math.floor(Math.random() * 7)),

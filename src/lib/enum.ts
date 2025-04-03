@@ -47,7 +47,7 @@ export const ReversedLocales = z.nativeEnum(LanguageReversed);
 /**
  * Define the allowed list of device types
  */
-export const DeviceType = z.enum([ "android", "ios", "windows", "macos", "linux", "web" ]);
+export const DeviceType = z.enum([ "android", "ios", "windows", "macos", "linux", "other" ]);
 
 /**
  * Define the allowed list of countries
