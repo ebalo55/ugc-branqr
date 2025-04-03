@@ -374,7 +374,7 @@ const content_demo = Array.from(
     import { animate } from "motion";
     import { Encryption } from "../../lib/encryption";
     import { z } from "zod";
-    import { getTrackingData, TrackingLevel } from "../../lib/tracker";
+    import { getTrackingData, type TrackingLevel } from "../../lib/tracker";
 
     function getCooldownElement() {
         const el = document.querySelector<HTMLElement>("[data-cooldown]");
@@ -653,7 +653,7 @@ const content_demo = Array.from(
                     ? document.body.dataset.tracking_level! as TrackingLevel
                     : "basic")
         .then((tracking) => {
-            console.log("Tracking data:", tracking);
+            console.log("Tracking data:", JSON.stringify(tracking));
             // TODO: Send tracking data to the server
         });
 
