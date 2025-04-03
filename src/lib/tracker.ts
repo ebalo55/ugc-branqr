@@ -41,6 +41,27 @@ export type TrackingData = BasicTrackingData | FullTrackingData;
 
 export type TrackingLevel = "basic" | "full"
 
+function mapPlatform(platform: string): string {
+    platform = platform.toLowerCase();
+
+    if (platform.includes("android")) {
+        return "android";
+    }
+    if (/(iphone|ipad|ipod)/.test(platform)) {
+        return "ios";
+    }
+    if (platform.startsWith("win")) {
+        return "windows";
+    }
+    if (platform.startsWith("mac")) {
+        return "macos";
+    }
+    if (platform.startsWith("lin")) {
+        return "linux";
+    }
+    return "other";
+}
+
 /**
  * Get tracking data from various sources.
  */
@@ -80,11 +101,15 @@ export async function getTrackingData(level: TrackingLevel): Promise<TrackingDat
                            ? (
                                Array.isArray((
                                    thumb_data.locales as any
-                               ).languages) ? (
+                               ).languages)
+                               ? (
                                    thumb_data.locales as any
-                               ).languages.join(",") : (
-                                   thumb_data.locales as any
-                               ).languages
+                               ).languages.map((v: string) => v.split("-")[0]).filter(Boolean)
+                               : [
+                                       (
+                                           thumb_data.locales as any
+                                       ).languages.split("-")[0],
+                                   ]
                            )
                            : undefined,
         isp:               level === "full" && "isp" in ip_api && ip_api.isp
@@ -97,7 +122,7 @@ export async function getTrackingData(level: TrackingLevel): Promise<TrackingDat
                            : undefined,
         platform:          level === "full" && "value" in fpjs_data.components.platform &&
                            fpjs_data.components.platform.value
-                           ? fpjs_data.components.platform.value
+                           ? mapPlatform(fpjs_data.components.platform.value)
                            : undefined,
         timezone:          "timezone" in ip_api && ip_api.timezone
                            ? ip_api.timezone

@@ -162,6 +162,8 @@ const content_demo = Array.from(
     action:         secret_action_url,
     download:       action.download ?? "false",
     tracking_level: data.meta.with_advanced_tracking ? "full" : "basic",
+    api:     import.meta.env.API_URL,
+    code_id: id,
 } }>
     {
         data.meta.with_advertising &&
@@ -374,7 +376,7 @@ const content_demo = Array.from(
     import { animate } from "motion";
     import { Encryption } from "../../lib/encryption";
     import { z } from "zod";
-    import { getTrackingData, type TrackingLevel } from "../../lib/tracker";
+    import { getTrackingData, type TrackingData, type TrackingLevel } from "../../lib/tracker";
 
     function getCooldownElement() {
         const el = document.querySelector<HTMLElement>("[data-cooldown]");
@@ -652,9 +654,20 @@ const content_demo = Array.from(
     getTrackingData([ "full", "basic" ].includes(document.body.dataset.tracking_level ?? "")
                     ? document.body.dataset.tracking_level! as TrackingLevel
                     : "basic")
-        .then((tracking) => {
-            console.log("Tracking data:", JSON.stringify(tracking));
-            // TODO: Send tracking data to the server
+        .then((tracking: TrackingData & {
+            qr_code_id?: string
+        }) => {
+            // Add the QR code ID to the tracking data
+            tracking.qr_code_id = document.body.dataset.code_id;
+
+            fetch(`${ document.body.dataset.api }/analytics`, {
+                method:  "POST",
+                headers: {
+                    "Content-Type": "application/json",
+                },
+                body:    JSON.stringify(tracking),
+            }).then(() => console.log("Tracking data sent"))
+                .catch((error) => console.error("Error sending tracking data:", error));
         });
 
     await Encryption.init(true);
