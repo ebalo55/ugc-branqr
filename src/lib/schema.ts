@@ -119,11 +119,18 @@ const QR_COUPON_PRIZE_SCHEMA = z.object({
 });
 
 /**
+ * The schema for the common settings of all qr codes
+ */
+const COMMON_SETTINGS_SCHEMA = z.object({
+    ads: z.boolean().optional().default(true),
+});
+
+/**
  * The schema for the basic settings of the QR code
  */
 const BASIC_SETTINGS_SCHEMA = z.object({
     track: z.boolean().optional().default(false),
-});
+}).merge(COMMON_SETTINGS_SCHEMA);
 
 /**
  * The schema for the static QR code type URL
@@ -271,7 +278,7 @@ const QR_DYNAMIC_TYPE_VCARD_PLUS = z.object({
             share:         z.boolean().optional(),
             visit_website: z.boolean().optional(),
         }).optional(),
-    }),
+    }).merge(COMMON_SETTINGS_SCHEMA),
 });
 
 /**
@@ -296,7 +303,7 @@ const QR_DYNAMIC_TYPE_PDF = z.object({
         // if direct link the preview will be disabled and the user will be redirected to the direct link after
         // the tracking step
         direct_link: z.boolean().optional(),
-    }),
+    }).merge(COMMON_SETTINGS_SCHEMA),
 });
 
 /**
@@ -317,7 +324,7 @@ const QR_DYNAMIC_TYPE_LINKTREE = z.object({
         actions: z.object({
             share: z.boolean().optional(),
         }).optional(),
-    }),
+    }).merge(COMMON_SETTINGS_SCHEMA),
 });
 
 /**
@@ -339,7 +346,7 @@ const QR_DYNAMIC_TYPE_SHOWCASE = z.object({
         actions: z.object({
             share: z.boolean().optional(),
         }).optional(),
-    }),
+    }).merge(COMMON_SETTINGS_SCHEMA),
 });
 
 /**
@@ -364,7 +371,7 @@ const QR_DYNAMIC_TYPE_APP = z.object({
         actions: z.object({
             share: z.boolean().optional(),
         }).optional(),
-    }),
+    }).merge(COMMON_SETTINGS_SCHEMA),
 });
 
 /**
@@ -404,7 +411,7 @@ const QR_DYNAMIC_TYPE_BUSINESS = z.object({
         actions: z.object({
             share: z.boolean().optional(),
         }).optional(),
-    }),
+    }).merge(COMMON_SETTINGS_SCHEMA),
 });
 
 /**
@@ -425,7 +432,7 @@ const QR_DYNAMIC_TYPE_YOUTUBE = z.object({
         actions: z.object({
             share: z.boolean().optional(),
         }).optional(),
-    }),
+    }).merge(COMMON_SETTINGS_SCHEMA),
 });
 
 /**
@@ -463,7 +470,7 @@ const QR_DYNAMIC_TYPE_EVENT = z.object({
             share:           z.boolean().optional(),
             add_to_calendar: z.boolean().optional(),
         }).optional(),
-    }),
+    }).merge(COMMON_SETTINGS_SCHEMA),
 });
 
 /**
@@ -526,7 +533,7 @@ const QR_DYNAMIC_TYPE_COUPON = z.object({
         actions: z.object({
             share: z.boolean().optional(),
         }).optional(),
-    }),
+    }).merge(COMMON_SETTINGS_SCHEMA),
 });
 
 /**
@@ -553,7 +560,7 @@ const QR_DYNAMIC_TYPE_FEEDBACK = z.object({
             share:        z.boolean().optional(),
             allow_rating: z.boolean().optional(),
         }).optional(),
-    }),
+    }).merge(COMMON_SETTINGS_SCHEMA),
 });
 
 /**
@@ -575,7 +582,34 @@ const QR_DYNAMIC_TYPE_RATING = z.object({
             share:         z.boolean().optional(),
             allow_comment: z.boolean().optional(),
         }).optional(),
-    }),
+    }).merge(COMMON_SETTINGS_SCHEMA),
+});
+
+export const QR_ADVANCED_SMART_REDIRECTION = z.object({
+    locales:     z.array(z.union([ ReversedLocales, z.literal("default") ]))
+                     .max(5, "Each smart redirection can have at most 5 locales")
+                     .optional(),
+    devices:     z.array(z.union([ DeviceType, z.literal("default") ]))
+                     .max(5, "Each smart redirection can have at most 5 devices")
+                     .optional(),
+    hour_ranges: z.array(
+        z.object({
+            from: z.string().time(),
+            to:   z.string().time(),
+        }).refine(
+            v => {
+                const from = dayjs(v.from, "HH:mm");
+                const to = dayjs(v.to, "HH:mm");
+
+                return from.isBefore(to);
+            },
+            {
+                message: "The start date must be before the end date",
+            },
+        ),
+    ).max(5, "Smart redirection can contain at most 5 hour ranges")
+                     .optional(),
+    redirect_to: z.string().url().nonempty(),
 });
 
 /**
@@ -623,32 +657,9 @@ export const QR_FORM_VALIDATION_SCHEMA = z.object({
         starts_at:  z.date().optional(),
     }),
     advanced:   z.object({
-        smart_redirection: z.array(z.object({
-            locales:     z.array(z.union([ ReversedLocales, z.literal("default") ]))
-                             .max(5, "Each smart redirection can have at most 5 locales")
-                             .optional(),
-            devices:     z.array(z.union([ DeviceType, z.literal("default") ]))
-                             .max(5, "Each smart redirection can have at most 5 devices")
-                             .optional(),
-            hour_ranges: z.array(
-                z.object({
-                    from: z.string().time(),
-                    to:   z.string().time(),
-                }).refine(
-                    v => {
-                        const from = dayjs(v.from, "HH:mm");
-                        const to = dayjs(v.to, "HH:mm");
-
-                        return from.isBefore(to);
-                    },
-                    {
-                        message: "The start date must be before the end date",
-                    },
-                ),
-            ).max(5, "Smart redirection can contain at most 5 hour ranges")
-                             .optional(),
-            redirect_to: z.string().url().nonempty(),
-        })).max(5, "Smart redirection can contain at most 5 items").optional(),
+        smart_redirection: z.array(QR_ADVANCED_SMART_REDIRECTION)
+                               .max(5, "Smart redirection can contain at most 5 items")
+                               .optional(),
         restrictions:      z.object({
             blacklisted_ips: z.array(z.string().ip()).max(10, "At most 10 IPs can be blacklisted").optional(),
             geo_fencing: z.array(z.object({
