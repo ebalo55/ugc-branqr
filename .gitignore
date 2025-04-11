@@ -26,3 +26,4 @@ pnpm-debug.log*
 
 # Demo content
 __DEMO__*
+.turbo

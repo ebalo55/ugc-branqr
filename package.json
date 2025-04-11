@@ -1,10 +1,10 @@
 {
-    "name": "ugc-branqr",
+    "name": "@repo/ugc",
     "type": "module",
     "version": "0.0.1",
     "scripts": {
         "dev": "astro dev",
-        "build": "astro build",
+        "build": "pnpm rimraf -g **/__DEMO__* && astro build",
         "preview": "astro preview",
         "astro": "astro",
         "gen:demo": "pnpm rimraf scripts-dist && pnpm tsc -p ./tsconfig.build.json && node ./scripts/patch.js && node ./scripts-dist/scripts/make-demo-content.js"

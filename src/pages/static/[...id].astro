@@ -175,7 +175,7 @@ const restrictions = await Encryption.instance.encrypt(
     download:       action.download ?? "false",
     tracking_level: data.meta.with_advanced_tracking ? "full" : "basic",
     api:      import.meta.env.API_URL,
-    code_id:  id.split("/").pop(),
+    code_id: id.split("/").pop()!,
     smart_redirection,
     restrictions,
     callback: data.meta.integrations.webhook ?? "",
@@ -487,14 +487,10 @@ const restrictions = await Encryption.instance.encrypt(
                     }
                     else {
                         if (z.string().url().safeParse(structured_content[key]).success) {
-                            el.innerHTML = `<a href="${ structured_content[key] }" target="_blank" class="text-blue-500 hover:underline">
-                                ${ structured_content[key] }
-                            </a>`;
+                            el.innerHTML = `<a href="${ structured_content[key] }" target="_blank" class="text-blue-500 hover:underline">${ structured_content[key] }</a>`;
                         }
                         else if (z.string().email().safeParse(structured_content[key]).success) {
-                            el.innerHTML = `<a href="mailto:${ structured_content[key] }" target="_blank" class="text-blue-500 hover:underline">
-                                ${ structured_content[key] }
-                            </a>`;
+                            el.innerHTML = `<a href="mailto:${ structured_content[key] }" target="_blank" class="text-blue-500 hover:underline">${ structured_content[key] }</a>`;
                         }
                         else {
                             el.textContent = structured_content[key];
