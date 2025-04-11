@@ -32,7 +32,6 @@ const key = await Encryption.instance.deriveKey(Encryption.instance.prepareSalt(
 const serialized_data = await Encryption.instance.decrypt(entry.data.crypt_data, key.derived_key);
 const data = JSON.parse(serialized_data) as z.infer<typeof QR_CODE_SCHEMA>;
 
-
 // Helper function to format vCard data
 function formatVCard(data: z.infer<typeof QR_CODE_SCHEMA>["def"]["content"] & {
     type: "vcard"
@@ -671,7 +670,7 @@ const restrictions = await Encryption.instance.encrypt(
     const timeout = cooldown_el.dataset.cooldown ? Number(cooldown_el.dataset.cooldown) : 5;
 
     // Countdown timer functionality
-    let seconds_left = 5;//timeout;
+    let seconds_left = timeout;
     const countdown_el = getElementOrFail("countdown-seconds");
     const progress_el = getElementOrFail("countdown-progress");
     const action_button = getElementOrFail("action-button");
