@@ -86,6 +86,7 @@ await all([
                     url:      "https://example.com",
                     settings: {
                         track: true,
+                        ads: false,
                     },
                 };
                 break;
@@ -97,6 +98,7 @@ await all([
                               "Aenean commodo ligula eget dolor. Aenean massa. Cum sociis natoque penatibus et",
                     settings: {
                         track: true,
+                        ads: false,
                     },
                 };
                 break;
@@ -106,6 +108,7 @@ await all([
                     email:    "john@example.com",
                     settings: {
                         track: true,
+                        ads: false,
                     },
                     subject:  "Lorem ipsum dolor sit amet",
                     body:     "Lorem ipsum dolor sit amet, consectetuer adipiscing elit.\n" +
@@ -119,6 +122,7 @@ await all([
                     phone:    "+49123456789",
                     settings: {
                         track: true,
+                        ads: false,
                     },
                 };
                 break;
@@ -130,6 +134,7 @@ await all([
                     hidden:   false,
                     settings: {
                         track: true,
+                        ads: false,
                     },
                 };
                 break;
@@ -146,6 +151,7 @@ await all([
                     phone:        "+49123456789",
                     settings:     {
                         track: true,
+                        ads: false,
                     },
                 };
                 break;
@@ -158,6 +164,7 @@ await all([
                               "Aenean commodo ligula eget dolor. Aenean massa. Cum sociis natoque penatibus et",
                     settings: {
                         track: true,
+                        ads: false,
                     },
                 };
                 break;

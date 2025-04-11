@@ -48,7 +48,7 @@ const QR_STYLE_BACKGROUND_SCHEMA = z.object({
     color:      z.string().optional().describe("Define the color for the background (QR code)"),
     gradient:   GRADIENT_SCHEMA.optional().describe("Define the gradients for the background (QR code)"),
     margin:     z.number()
-                    .positive()
+                    .min(0)
                     .max(50)
                     .optional()
                     .describe(

@@ -35,7 +35,7 @@ export class Encryption {
     }
 
     /**
-     * Generate a new encryption key, and return it as a base64url encoded string.
+     * Generate a new encryption key, and return it as a base64 encoded string.
      */
     public static async makeKey() {
         const key = await crypto.subtle.generateKey(
