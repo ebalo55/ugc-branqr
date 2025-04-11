@@ -64,6 +64,8 @@ jobs:
         run: pnpm install --no-frozen-lockfile
 
       - name: Build with Astro
+        env:
+          ENCRYPTION_KEY: ${{ secrets.ENCRYPTION_KEY }}
         run: |
           pnpm run build
 
