@@ -175,7 +175,7 @@ const restrictions = await Encryption.instance.encrypt(
     download:       action.download ?? "false",
     tracking_level: data.meta.with_advanced_tracking ? "full" : "basic",
     api:      import.meta.env.API_URL,
-    code_id:  id,
+    code_id:  id.split("/").pop(),
     smart_redirection,
     restrictions,
     callback: data.meta.integrations.webhook ?? "",
