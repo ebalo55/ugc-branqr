@@ -32,6 +32,7 @@ const key = await Encryption.instance.deriveKey(Encryption.instance.prepareSalt(
 const serialized_data = await Encryption.instance.decrypt(entry.data.crypt_data, key.derived_key);
 const data = JSON.parse(serialized_data) as z.infer<typeof QR_CODE_SCHEMA>;
 
+
 // Helper function to format vCard data
 function formatVCard(data: z.infer<typeof QR_CODE_SCHEMA>["def"]["content"] & {
     type: "vcard"
