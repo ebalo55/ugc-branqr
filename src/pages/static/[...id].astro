@@ -628,37 +628,41 @@ const restrictions = await Encryption.instance.encrypt(
         window.location.href = "/restricted";
     }
 
-    getTrackingData([ "full", "basic" ].includes(document.body.dataset.tracking_level ?? "")
-                    ? document.body.dataset.tracking_level! as TrackingLevel
-                    : "basic")
-        .then((tracking: TrackingData & {
-            qr_code_id?: string
-        }) => {
-            // Add the QR code ID to the tracking data
-            tracking.qr_code_id = document.body.dataset.code_id;
+    const search_params = new URLSearchParams(window.location.search);
+    const is_preview = search_params.get("preview") === "1";
+    if (!is_preview) {
+        getTrackingData([ "full", "basic" ].includes(document.body.dataset.tracking_level ?? "")
+                        ? document.body.dataset.tracking_level! as TrackingLevel
+                        : "basic")
+            .then((tracking: TrackingData & {
+                qr_code_id?: string
+            }) => {
+                // Add the QR code ID to the tracking data
+                tracking.qr_code_id = document.body.dataset.code_id;
 
-            fetch(`${ document.body.dataset.api }/analytics`, {
-                method:  "POST",
-                headers: {
-                    "Content-Type": "application/json",
-                },
-                body:    JSON.stringify(tracking),
-            }).then(() => console.log("Tracking data sent"))
-                .catch((error) => console.error("Error sending tracking data:", error));
-
-            // check if a webhook is defined
-            if (!!document.body.dataset.callback) {
-                fetch(document.body.dataset.callback, {
+                fetch(`${ document.body.dataset.api }/analytics`, {
                     method:  "POST",
                     headers: {
                         "Content-Type": "application/json",
                     },
                     body:    JSON.stringify(tracking),
-                    mode:    "no-cors",
-                }).then(() => console.log("Webhook data sent"))
-                    .catch((error) => console.error("Error sending webhook data:", error));
-            }
-        });
+                }).then(() => console.log("Tracking data sent"))
+                    .catch((error) => console.error("Error sending tracking data:", error));
+
+                // check if a webhook is defined
+                if (!!document.body.dataset.callback) {
+                    fetch(document.body.dataset.callback, {
+                        method:  "POST",
+                        headers: {
+                            "Content-Type": "application/json",
+                        },
+                        body:    JSON.stringify(tracking),
+                        mode:    "no-cors",
+                    }).then(() => console.log("Webhook data sent"))
+                        .catch((error) => console.error("Error sending webhook data:", error));
+                }
+            });
+    }
 
     const cooldown_el = getElementOrFail("[data-cooldown]", "query-selector");
 
