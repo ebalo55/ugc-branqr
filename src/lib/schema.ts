@@ -13,11 +13,11 @@ import {
     ExpirationCriteria,
     GradientType,
     ImageMimes,
+    Locales,
     QrColorType,
     QrShape,
     RatingType,
     ReversedCountries,
-    ReversedLocales,
     ShowcaseStyle,
     Social,
     Weekday,
@@ -62,12 +62,12 @@ const QR_STYLE_BACKGROUND_SCHEMA = z.object({
 const QR_STYLE_LOGO_SCHEMA = z.object({
     color:  z.string().optional().describe("Define the color for the container that holds the logo"),
     radius: z.number()
-                .positive()
+                .min(0)
                 .max(50)
                 .optional()
                 .describe("Define the radius for the container that holds the logo"),
     margin: z.number()
-                .positive()
+                .min(0)
                 .max(50)
                 .optional()
                 .describe("Define the margin around the logo, default to zero, margin is applied to all sides equally"),
@@ -387,8 +387,8 @@ const QR_DYNAMIC_TYPE_BUSINESS = z.object({
     summary:       z.string().max(200).optional(),
     opening_hours: z.array(z.object({
         day:  Weekday,
-        from: z.string().time(),
-        to:   z.string().time(),
+        from: z.string().regex(/^(?:[01][0-9]|2[0-3]):[0-5][0-9]$/, "Must be a valid time"),
+        to:   z.string().regex(/^(?:[01][0-9]|2[0-3]):[0-5][0-9]$/, "Must be a valid time"),
     })).optional(),
     contact:       z.object({
         name:    z.string().max(100).optional(),
@@ -586,7 +586,7 @@ const QR_DYNAMIC_TYPE_RATING = z.object({
 });
 
 export const QR_ADVANCED_SMART_REDIRECTION = z.object({
-    locales:     z.array(z.union([ ReversedLocales, z.literal("default") ]))
+    locales:     z.array(z.union([ Locales, z.literal("default") ]))
                      .max(5, "Each smart redirection can have at most 5 locales")
                      .optional(),
     devices:     z.array(z.union([ DeviceType, z.literal("default") ]))
@@ -594,14 +594,14 @@ export const QR_ADVANCED_SMART_REDIRECTION = z.object({
                      .optional(),
     hour_ranges: z.array(
         z.object({
-            from: z.string().time(),
-            to:   z.string().time(),
+            from: z.string().regex(/^(?:[01][0-9]|2[0-3]):[0-5][0-9]$/, "Must be a valid time"),
+            to:   z.string().regex(/^(?:[01][0-9]|2[0-3]):[0-5][0-9]$/, "Must be a valid time"),
         }).refine(
             v => {
                 const from = dayjs(v.from, "HH:mm");
                 const to = dayjs(v.to, "HH:mm");
 
-                return from.isBefore(to);
+                return from.isBefore(to, "minute");
             },
             {
                 message: "The start date must be before the end date",
