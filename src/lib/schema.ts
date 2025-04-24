@@ -617,7 +617,7 @@ export const QR_ADVANCED_SMART_REDIRECTION = z.object({
  */
 export const QR_FORM_VALIDATION_SCHEMA = z.object({
     name:       z.string().min(3).max(100),
-    campaign: z.string().max(200).optional(),
+    campaign:   z.string().max(200).optional(),
     content:    z.discriminatedUnion("type", [
         // static types
         QR_STATIC_TYPE_URL,
@@ -666,7 +666,7 @@ export const QR_FORM_VALIDATION_SCHEMA = z.object({
             geo_fencing: z.array(z.object({
                 country: ReversedCountries,
                 city:    z.string().optional(),
-            })).min(1).max(5, "At most 5 locations can be defined").optional(),
+            })).max(5, "At most 5 locations can be defined").optional(),
         }).optional(),
         attribution:       z.object({
             campaign:    z.string().max(200).optional(),
