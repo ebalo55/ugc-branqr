@@ -617,6 +617,7 @@ export const QR_ADVANCED_SMART_REDIRECTION = z.object({
  */
 export const QR_FORM_VALIDATION_SCHEMA = z.object({
     name:       z.string().min(3).max(100),
+    campaign: z.string().max(200).optional(),
     content:    z.discriminatedUnion("type", [
         // static types
         QR_STATIC_TYPE_URL,
