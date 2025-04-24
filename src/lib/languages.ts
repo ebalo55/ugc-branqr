@@ -181,7 +181,7 @@ export enum Language {
     'Uzbek' = 'uz',
     'Venda' = 've',
     'Vietnamese' = 'vi',
-    'Volapük' = 'vo',
+    "Volapuk" = "vo",
     'Walloon' = 'wa',
     'Wolof' = 'wo',
     'Xhosa' = 'xh',
