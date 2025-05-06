@@ -118,12 +118,7 @@ const QR_COUPON_PRIZE_SCHEMA = z.object({
     third:  QR_COUPON_PRIZE_ITEM_SCHEMA,
 });
 
-/**
- * The schema for the common settings of all qr codes
- */
-const COMMON_SETTINGS_SCHEMA = z.object({
-    ads: z.boolean().optional().default(true),
-});
+const COMMON_SETTINGS_SCHEMA = z.object({});
 
 /**
  * The schema for the basic settings of the QR code
