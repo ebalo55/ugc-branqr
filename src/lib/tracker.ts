@@ -106,7 +106,9 @@ interface IpApiResponse {
  * @returns {Promise<IpApiResponse>}
  */
 export function internal_ipApi(): Promise<IpApiResponse> {
-    return fetch("http://ip-api.com/json/?fields=country,city,timezone,isp").then(res => res.json());
+    return fetch(`${ document.body.dataset.api }/proxy/json?domain=ip-api.com&parameters=${ encodeURI(
+        "fields=country,city,timezone,isp",
+    ) }`).then(res => res.json());
 }
 
 /**
@@ -124,11 +126,11 @@ export const ipApi = cachedFunction(
  */
 export async function getTrackingData(level: TrackingLevel): Promise<TrackingData> {
     let {
-              ifconfig_me,
-              thumb_data,
-              ip_api,
-              fpjs_data,
-          } = await all({
+            ifconfig_me,
+            thumb_data,
+            ip_api,
+            fpjs_data,
+        } = await all({
         ifconfig_me: ifconfigMe(),
         thumb_data:  getFingerprintData(),
         ip_api:      ipApi(),
