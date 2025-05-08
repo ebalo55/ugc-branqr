@@ -66,6 +66,8 @@ jobs:
       - name: Build with Astro
         env:
           ENCRYPTION_KEY: ${{ secrets.ENCRYPTION_KEY }}
+          API_URL: ${{ vars.API_URL }}
+          ENVIRONMENT: ${{ vars.ENVIRONMENT }}
         run: |
           pnpm run build
 
