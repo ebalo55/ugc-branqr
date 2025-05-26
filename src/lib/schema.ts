@@ -441,8 +441,8 @@ const QR_DYNAMIC_TYPE_EVENT = z.object({
     title:     z.string().max(150).nonempty(),
     summary:   z.string().max(200).optional(),
     when:      z.object({
-        from: z.date(),
-        to:   z.date(),
+        from: z.date({coerce: true}),
+        to:   z.date({coerce: true}),
     }).refine(v => {
         return dayjs(v.from).isBefore(dayjs(v.to));
     }, {message: "The start date must be before the end date"}),
@@ -478,7 +478,7 @@ const QR_DYNAMIC_TYPE_COUPON = z.object({
     company:    z.string().max(100).optional(),
     headline:   z.string().max(150).nonempty(),
     summary:    z.string().max(200).optional(),
-    elapses_at: z.date().optional(),
+    elapses_at: z.date({coerce: true}).optional(),
     terms:      z.string().optional(),
     website:    z.string().url().optional(),
     address:    z.string().optional(),
@@ -643,14 +643,14 @@ export const QR_FORM_VALIDATION_SCHEMA = z.object({
             }),
             z.object({
                 type: ExpirationCriteria.extract([ "time" ]),
-                at:   z.date().min(new Date()),
+                at: z.date({coerce: true}).min(new Date()),
             }),
             z.object({
                 type:  ExpirationCriteria.extract([ "scan" ]),
                 times: z.number().int().min(1),
             }),
         ]).optional(),
-        starts_at:  z.date().optional(),
+        starts_at:  z.date({coerce: true}).optional(),
     }),
     advanced:   z.object({
         smart_redirection: z.array(QR_ADVANCED_SMART_REDIRECTION)
